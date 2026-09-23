@@ -3,6 +3,8 @@
 // branchesOf (src/flow/branches.ts); bảng này chỉ dịch handle sang chữ hiển
 // thị (Tự quyết iter 5 của plan.md).
 
+import type { FlowDocument } from "../flow/types";
+
 export type StepType = "start" | "play" | "menu" | "queue" | "hangup" | "schedule";
 
 export const STEP_TYPES: ReadonlyArray<{ type: StepType; label: string }> = [
@@ -48,4 +50,27 @@ export function newNodeData(type: StepType): Record<string, unknown> {
     data.rules = [{ time: { from: "08:00", to: "17:00" } }];
   }
   return data;
+}
+
+export const NEW_FLOW_NAME = "Kịch bản mới";
+
+// Bản nháp trống cho kịch bản mới (Tự quyết iter 8 của plan.md): chỉ node Bắt
+// đầu, hai nhánh trỏ id giữ chỗ khớp pattern $defs/nodeId nhưng chưa tồn tại
+// trong nodes → qua lớp 1, lớp 2 báo đúng 2 DANGLING_BRANCH (AC-20). Hai id
+// không phải uuid nên không bao giờ trùng id node sinh từ palette. Mỗi lần
+// gọi trả object mới — sửa bản này không đổi bản kia.
+export function newFlowDocument(): FlowDocument {
+  return {
+    schemaVersion: "1.1.0",
+    startNodeId: "start",
+    nodes: {
+      start: {
+        type: "start",
+        label: "Bắt đầu",
+        nextNodeId: "chua-noi-nhanh-chinh",
+        fallbackNodeId: "chua-noi-nhanh-du-phong",
+      },
+    },
+    canvas: { positions: { start: { x: 0, y: 0 } } },
+  };
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { createContext, useContext, useEffect } from "react";
 import {
   Handle,
   Position,
@@ -8,12 +8,19 @@ import {
 } from "@xyflow/react";
 import { branchesOf } from "../flow/branches";
 import type { FlowNode as FlowNodeModel } from "../flow/types";
+import type { NodeIssue } from "./issues";
 import { branchLabel, stepLabel } from "./steps";
+
+// Dấu kiểm hợp lệ đưa vào node qua context, KHÔNG qua node.data — fromCanvas
+// chép nguyên data vào tài liệu, khoá lạ làm lớp 1 báo additionalProperties
+// (3-plan-04 Cross-module). Map để id `__proto__` không đổi prototype.
+export const NodeIssuesContext = createContext<ReadonlyMap<string, NodeIssue[]>>(new Map());
 
 // Một component duy nhất cho cả sáu loại bước: tiêu đề và điểm nối nguồn
 // sinh từ data của node qua branchesOf — không gõ tay tên điểm nối. queue và
 // hangup không có nhánh ra → 0 điểm nối nguồn (TC-CALL-016).
 function FlowNodeView({ id, data }: NodeProps) {
+  const issues = useContext(NodeIssuesContext).get(id) ?? [];
   const type = typeof data.type === "string" ? data.type : "";
   const title =
     typeof data.label === "string" && data.label !== "" ? data.label : stepLabel(type);
@@ -37,6 +44,18 @@ function FlowNodeView({ id, data }: NodeProps) {
           <span data-testid="handle-label" data-handleid={branch.handle}>
             {branchLabel(type, branch.handle)}
           </span>
+        </div>
+      ))}
+      {issues.map((issue, index) => (
+        <div
+          key={index}
+          className="builder-node-issue"
+          data-testid="node-issue"
+          data-severity={issue.severity}
+          data-code={issue.code}
+          title={issue.message}
+        >
+          {issue.message}
         </div>
       ))}
     </div>

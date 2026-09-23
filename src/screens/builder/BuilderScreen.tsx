@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -15,20 +15,36 @@ import "@xyflow/react/dist/style.css";
 import "../../styles/tokens.css";
 import "./builder.css";
 import {
+  createFlow,
   getVersion,
   listMedia,
   listQueues,
   listVersions,
+  saveDraft,
   type FlowVersionSummary,
   type MediaAsset,
   type QueueRecord,
 } from "../../data/api";
-import { toCanvas } from "../../flow/canvas";
-import { nodeTypes } from "../../canvas/FlowNode";
-import { STEP_TYPES, newNodeData, type StepType } from "../../canvas/steps";
+import { fromCanvas, toCanvas } from "../../flow/canvas";
+import { NodeIssuesContext, nodeTypes } from "../../canvas/FlowNode";
+import { collectIssues, type NodeIssue, type ValidationView } from "../../canvas/issues";
+import {
+  NEW_FLOW_NAME,
+  STEP_TYPES,
+  newFlowDocument,
+  newNodeData,
+  type StepType,
+} from "../../canvas/steps";
 import { Inspector } from "./Inspector";
 
 type Phase = "loading" | "ready" | "error";
+
+// Trạng thái ô lưu nháp. saved mang số phiên bản; error mang thông điệp đọc được.
+type SaveState =
+  | { state: "idle" }
+  | { state: "saving" }
+  | { state: "saved"; versionNumber: number }
+  | { state: "error"; message: string };
 
 function BuilderInner({ flowId }: { flowId: string }) {
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -37,7 +53,16 @@ function BuilderInner({ flowId }: { flowId: string }) {
   const [queues, setQueues] = useState<QueueRecord[]>([]);
   const [phase, setPhase] = useState<Phase>("loading");
   const [errorMessage, setErrorMessage] = useState("");
+  const [save, setSave] = useState<SaveState>({ state: "idle" });
+  const [validation, setValidation] = useState<ValidationView | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newFlowError, setNewFlowError] = useState("");
   const dragTypeRef = useRef<StepType | null>(null);
+  // aliveRef chặn setState sau khi unmount (StrictMode + rời màn giữa chừng).
+  // savingRef/creatingRef chặn gọi lại trước lần render kịp disable nút.
+  const aliveRef = useRef(false);
+  const savingRef = useRef(false);
+  const creatingRef = useRef(false);
   const { screenToFlowPosition } = useReactFlow();
 
   // Tải phiên bản mới nhất qua ranh giới dữ liệu. Cờ huỷ trong cleanup —
@@ -82,6 +107,15 @@ function BuilderInner({ flowId }: { flowId: string }) {
       cancelled = true;
     };
   }, [flowId]);
+
+  // Cờ sống: true trong thân effect, false trong cleanup. StrictMode chạy
+  // mount/cleanup/mount nên kết thúc vẫn true; unmount thật thì về false.
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
 
   const onNodesChange = useCallback((changes: NodeChange<Node>[]) => {
     setNodes((current) => applyNodeChanges(changes, current));
@@ -175,10 +209,169 @@ function BuilderInner({ flowId }: { flowId: string }) {
     );
   }, []);
 
+  // Lưu nháp: chụp tài liệu ĐỒNG BỘ trước await (bản chụp lúc bấm), savingRef
+  // chặn lưu hai lần. Không ném, không để Promise reject trôi thành pageerror.
+  const handleSave = useCallback(() => {
+    if (savingRef.current) {
+      return;
+    }
+    savingRef.current = true;
+    setSave({ state: "saving" });
+    const doc = fromCanvas(nodes, edges);
+    (async () => {
+      try {
+        const saved = await saveDraft(flowId, doc);
+        if (aliveRef.current) {
+          setSave({ state: "saved", versionNumber: saved.versionNumber });
+        }
+      } catch (error) {
+        if (aliveRef.current) {
+          setSave({
+            state: "error",
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      } finally {
+        savingRef.current = false;
+      }
+    })();
+  }, [nodes, edges, flowId]);
+
+  // Kiểm hợp lệ: đồng bộ, thay NGUYÊN kết quả để bấm hai lần không nhân đôi
+  // dấu. Dấu giữ tới lần bấm kế tiếp, không tự xoá khi sửa canvas (Tự quyết 8).
+  const handleValidate = useCallback(() => {
+    setValidation(collectIssues(fromCanvas(nodes, edges)));
+  }, [nodes, edges]);
+
+  // Kịch bản mới: createFlow rồi saveDraft bản nháp trống, đổi hash (id thô) để
+  // App dựng BuilderScreen mới qua key. Lỗi → new-flow-error, không điều hướng.
+  const handleNewFlow = useCallback(() => {
+    if (creatingRef.current) {
+      return;
+    }
+    creatingRef.current = true;
+    setCreating(true);
+    setNewFlowError("");
+    (async () => {
+      try {
+        const flow = await createFlow(NEW_FLOW_NAME);
+        await saveDraft(flow.id, newFlowDocument());
+        if (aliveRef.current) {
+          window.location.hash = `#/flows/${flow.id}`;
+        }
+      } catch (error) {
+        if (aliveRef.current) {
+          setNewFlowError(error instanceof Error ? error.message : String(error));
+        }
+      } finally {
+        creatingRef.current = false;
+        if (aliveRef.current) {
+          setCreating(false);
+        }
+      }
+    })();
+  }, []);
+
+  // Dấu gắn node đưa vào FlowNode qua context (Map), KHÔNG qua node.data —
+  // fromCanvas chép nguyên data vào tài liệu, khoá lạ làm lớp 1 báo
+  // additionalProperties. Issue không nodeId hiện trong validate-result.
+  const issuesByNode = useMemo(() => {
+    const map = new Map<string, NodeIssue[]>();
+    if (validation !== null) {
+      for (const issue of validation.issues) {
+        if (issue.nodeId === undefined) {
+          continue;
+        }
+        const list = map.get(issue.nodeId);
+        if (list === undefined) {
+          map.set(issue.nodeId, [issue]);
+        } else {
+          list.push(issue);
+        }
+      }
+    }
+    return map;
+  }, [validation]);
+
+  const looseIssues =
+    validation === null ? [] : validation.issues.filter((issue) => issue.nodeId === undefined);
+  const errorCount =
+    validation === null
+      ? 0
+      : validation.issues.filter((issue) => issue.severity === "error").length;
+  const warningCount =
+    validation === null
+      ? 0
+      : validation.issues.filter((issue) => issue.severity === "warning").length;
+
   const selectedNode = nodes.find((node) => node.selected);
 
   return (
     <div className="builder">
+      <div className="builder-toolbar" data-testid="builder-toolbar">
+        <button type="button" data-testid="new-flow" onClick={handleNewFlow} disabled={creating}>
+          Kịch bản mới
+        </button>
+        <button
+          type="button"
+          data-testid="save-draft"
+          onClick={handleSave}
+          disabled={phase !== "ready" || save.state === "saving"}
+        >
+          Lưu nháp
+        </button>
+        <button
+          type="button"
+          data-testid="validate"
+          onClick={handleValidate}
+          disabled={phase !== "ready"}
+        >
+          Kiểm tra hợp lệ
+        </button>
+        <span
+          className="builder-save-status"
+          data-testid="save-status"
+          data-state={save.state}
+          data-version-number={save.state === "saved" ? save.versionNumber : undefined}
+          role={save.state === "error" ? "alert" : undefined}
+        >
+          {save.state === "saving"
+            ? "Đang lưu…"
+            : save.state === "saved"
+              ? `Đã lưu bản nháp v${save.versionNumber}`
+              : save.state === "error"
+                ? `Không lưu được: ${save.message}`
+                : ""}
+        </span>
+        {validation !== null ? (
+          <div
+            className="builder-validate-result"
+            data-testid="validate-result"
+            data-valid={validation.valid ? "true" : "false"}
+          >
+            <span className="builder-validate-summary">
+              {validation.valid ? "Kịch bản hợp lệ" : `Kịch bản có ${errorCount} lỗi`}
+              {warningCount > 0 ? `, ${warningCount} cảnh báo` : ""}
+            </span>
+            {looseIssues.map((issue, index) => (
+              <span
+                key={index}
+                className="builder-validate-issue"
+                data-testid="validate-issue"
+                data-code={issue.code}
+                data-severity={issue.severity}
+              >
+                {issue.message}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {newFlowError !== "" ? (
+          <span className="builder-new-flow-error" data-testid="new-flow-error" role="alert">
+            {newFlowError}
+          </span>
+        ) : null}
+      </div>
       <div className="builder-palette" data-testid="palette">
         {STEP_TYPES.map(({ type, label }) => (
           <div
@@ -202,17 +395,19 @@ function BuilderInner({ flowId }: { flowId: string }) {
             {errorMessage}
           </div>
         ) : (
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            fitView
-          />
+          <NodeIssuesContext.Provider value={issuesByNode}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              fitView
+            />
+          </NodeIssuesContext.Provider>
         )}
       </div>
       {phase === "ready" && selectedNode !== undefined ? (
