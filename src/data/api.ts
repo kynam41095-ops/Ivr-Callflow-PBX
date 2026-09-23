@@ -1,5 +1,16 @@
 import type { FlowDocument } from "../flow/types";
-import { didStore, flowStore, versionStore, type StoredVersion } from "./mock";
+import {
+  didStore,
+  flowStore,
+  mediaCatalog,
+  queueCatalog,
+  versionStore,
+  type MediaAsset,
+  type QueueRecord,
+  type StoredVersion,
+} from "./mock";
+
+export type { MediaAsset, QueueRecord };
 
 // Ranh giới truy cập dữ liệu duy nhất của giao diện. Tên và hình dạng bám
 // builder-api.yaml (Did, FlowSummary, FlowVersionSummary,
@@ -76,4 +87,15 @@ export async function getVersion(
     );
   }
   return structuredClone({ version: toSummary(stored), document: stored.document });
+}
+
+// Danh mục file âm thanh (GET /media) — trả mảng, bỏ quota vì không màn nào
+// dùng (Out of Scope "Màn hình file âm thanh").
+export async function listMedia(): Promise<MediaAsset[]> {
+  return structuredClone(mediaCatalog);
+}
+
+// Danh sách hàng đợi của tenant (GET /resources/queues, items[]).
+export async function listQueues(): Promise<QueueRecord[]> {
+  return structuredClone(queueCatalog);
 }

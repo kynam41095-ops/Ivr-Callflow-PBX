@@ -1,0 +1,15 @@
+/* Bộ token chủ đề sáng tối thiểu — tự đặt theo plan.md Tự quyết iter 1
+   (bản dựng thử IVR Builder v3.dc.html không có trên đĩa). Đổi giao diện
+   chỉ sửa file này. Không có biến chủ đề tối (Ràng buộc 11). */
+:root {
+  --color-bg: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-border: #cbd5e1;
+  --color-accent: #2563eb;
+  --color-danger: #dc2626;
+  --radius: 6px;
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.875rem;
+}

@@ -1,0 +1,51 @@
+// Bảng duy nhất cho giao diện của sáu loại bước: nhãn palette, nhãn điểm
+// nối nguồn và data của node mới. Tên điểm nối không gõ tay ở đây — sinh từ
+// branchesOf (src/flow/branches.ts); bảng này chỉ dịch handle sang chữ hiển
+// thị (Tự quyết iter 5 của plan.md).
+
+export type StepType = "start" | "play" | "menu" | "queue" | "hangup" | "schedule";
+
+export const STEP_TYPES: ReadonlyArray<{ type: StepType; label: string }> = [
+  { type: "start", label: "Bắt đầu" },
+  { type: "play", label: "Phát lời thoại" },
+  { type: "menu", label: "Menu phím bấm" },
+  { type: "queue", label: "Chuyển hàng đợi" },
+  { type: "hangup", label: "Kết thúc" },
+  { type: "schedule", label: "Điều kiện theo lịch" },
+];
+
+const CHOICE_PREFIX = "choice-";
+
+const BRANCH_LABELS: Record<string, Record<string, string>> = {
+  start: { next: "Nhánh chính", fallback: "Nhánh dự phòng" },
+  play: { next: "Tiếp theo" },
+  menu: { timeout: "Không bấm", invalid: "Bấm sai" },
+  schedule: { open: "Trong giờ", closed: "Ngoài giờ" },
+};
+
+export function stepLabel(type: string): string {
+  return STEP_TYPES.find((step) => step.type === type)?.label ?? type;
+}
+
+export function branchLabel(type: string, handle: string): string {
+  if (handle.startsWith(CHOICE_PREFIX)) {
+    return handle.slice(CHOICE_PREFIX.length);
+  }
+  return BRANCH_LABELS[type]?.[handle] ?? handle;
+}
+
+// data của node mới thả từ palette: chỉ trường có trong $defs của
+// flow-document.schema.json. Trường bắt buộc còn thiếu (mediaId,
+// nextNodeId…) để trống — lô 4 báo lỗi khi kiểm hợp lệ.
+export function newNodeData(type: StepType): Record<string, unknown> {
+  const data: Record<string, unknown> = { type, label: stepLabel(type) };
+  if (type === "menu") {
+    data.choices = {};
+    data.timeoutSeconds = 5; // giá trị default của schema
+  }
+  if (type === "schedule") {
+    data.timezone = "Asia/Ho_Chi_Minh";
+    data.rules = [{ time: { from: "08:00", to: "17:00" } }];
+  }
+  return data;
+}
