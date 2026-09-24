@@ -47,6 +47,8 @@ export type Did = {
   id: string;
   number: string;
   publishedVersionId: string | null;
+  provider: string | null;
+  kind: string | null;
 };
 
 export type FlowSummary = {
@@ -240,6 +242,8 @@ export async function createPhoneNumber(number: string): Promise<Did> {
     id: crypto.randomUUID(),
     number: trimmed,
     publishedVersionId: null,
+    provider: null,
+    kind: null,
   };
   didStore.push(did);
   return structuredClone(did);

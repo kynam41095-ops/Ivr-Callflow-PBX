@@ -2,14 +2,25 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import "./numbers.css";
 import {
   createPhoneNumber,
+  getVersion,
   listFlows,
   listPhoneNumbers,
+  listVersions,
   type Did,
   type FlowSummary,
 } from "../../data/api";
 import { ErrorState } from "../../ui/ErrorState";
 
 type Phase = "loading" | "ready" | "error";
+
+// Thông tin dẫn xuất theo kịch bản (không thuộc contract Did/FlowSummary) —
+// versionNumber/nodeCount của bản đang publish, hasDraft = có bản draft nào
+// không. Tính một lần trong effect, tra theo flow.id lúc render bảng.
+type FlowInfo = {
+  versionNumber: number | null;
+  nodeCount: number | null;
+  hasDraft: boolean;
+};
 
 // Modal tạo đầu số — component con có state riêng (ô nhập, lỗi, đang gửi):
 // đóng là unmount, mở lại là sạch (3-plan-05). <dialog> native mở bằng
@@ -94,24 +105,26 @@ function CreateNumberDialog({
     >
       <h2 id="number-dialog-title">Tạo đầu số mới</h2>
       <form onSubmit={handleSubmit}>
-        <label className="number-dialog-label" htmlFor="number-dialog-input">
-          Số điện thoại
-        </label>
-        {/* Không đặt maxLength — giới hạn 32 ký tự kiểm ở ranh giới, để ca
-            33 ký tự đi đường lỗi thật (3-plan-05). */}
-        <input
-          id="number-dialog-input"
-          data-testid="number-input"
-          type="tel"
-          value={value}
-          autoFocus
-          onChange={(event) => setValue(event.target.value)}
-        />
-        {errorMessage !== "" ? (
-          <p className="number-create-error" data-testid="number-create-error" role="alert">
-            {errorMessage}
-          </p>
-        ) : null}
+        <div>
+          <label className="number-dialog-label" htmlFor="number-dialog-input">
+            Số điện thoại
+          </label>
+          {/* Không đặt maxLength — giới hạn 32 ký tự kiểm ở ranh giới, để ca
+              33 ký tự đi đường lỗi thật (3-plan-05). */}
+          <input
+            id="number-dialog-input"
+            data-testid="number-input"
+            type="tel"
+            value={value}
+            autoFocus
+            onChange={(event) => setValue(event.target.value)}
+          />
+          {errorMessage !== "" ? (
+            <p className="number-create-error" data-testid="number-create-error" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+        </div>
         <div className="number-dialog-actions">
           {/* type="button" bắt buộc — thiếu là mặc định submit, bấm Huỷ lại
               tạo đầu số (3-plan-05). */}
@@ -131,13 +144,18 @@ export default function NumbersScreen() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [dids, setDids] = useState<Did[]>([]);
   const [flows, setFlows] = useState<FlowSummary[]>([]);
+  const [flowInfo, setFlowInfo] = useState<Map<string, FlowInfo>>(new Map());
   const [errorMessage, setErrorMessage] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
   // Tải qua ranh giới dữ liệu, cờ huỷ trong cleanup như BuilderScreen —
   // StrictMode chạy effect hai lần, rời màn giữa chừng không setState,
-  // không để Promise reject trôi thành pageerror.
+  // không để Promise reject trôi thành pageerror. Mỗi lần tải cũng kéo
+  // listVersions/getVersion của từng kịch bản để có versionNumber/nodeCount/
+  // hasDraft cho bảng — cùng một try nên lỗi ở đây vẫn chỉ ra đúng một
+  // ErrorState (AC-25).
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -146,8 +164,28 @@ export default function NumbersScreen() {
         if (cancelled) {
           return;
         }
+        const infoEntries = await Promise.all(
+          flowList.map(async (flow): Promise<[string, FlowInfo]> => {
+            const versions = await listVersions(flow.id);
+            const hasDraft = versions.some((version) => version.status === "draft");
+            const published =
+              flow.publishedVersionId === null
+                ? undefined
+                : versions.find((version) => version.id === flow.publishedVersionId);
+            let nodeCount: number | null = null;
+            if (published !== undefined) {
+              const { document } = await getVersion(flow.id, published.id);
+              nodeCount = Object.keys(document.nodes).length;
+            }
+            return [flow.id, { versionNumber: published?.versionNumber ?? null, nodeCount, hasDraft }];
+          }),
+        );
+        if (cancelled) {
+          return;
+        }
         setDids(numberList);
         setFlows(flowList);
+        setFlowInfo(new Map(infoEntries));
         setPhase("ready");
       } catch (error) {
         if (!cancelled) {
@@ -183,17 +221,93 @@ export default function NumbersScreen() {
       ? undefined
       : flows.find((flow) => flow.publishedVersionId === did.publishedVersionId);
 
+  // Ba thẻ thống kê đếm trên TOÀN danh sách, không theo ô tìm (lot-brief
+  // §Quy ước chung). drafts đếm số dòng sẽ có number-draft, tức flow được
+  // gán có bất kỳ phiên bản draft nào.
+  const total = dids.length;
+  const active = dids.filter((did) => did.publishedVersionId !== null).length;
+  const drafts = dids.filter((did) => {
+    const flow = flowOf(did);
+    return flow !== undefined && (flowInfo.get(flow.id)?.hasDraft ?? false);
+  }).length;
+
+  const term = search.trim().toLowerCase();
+  const visibleDids =
+    term === ""
+      ? dids
+      : dids.filter((did) => {
+          const flow = flowOf(did);
+          return (
+            did.number.toLowerCase().includes(term) ||
+            (flow !== undefined && flow.name.toLowerCase().includes(term))
+          );
+        });
+
   return (
     <div className="numbers" data-testid="numbers-screen">
+      <div className="numbers-header">
+        <h1>Quản lý đầu số</h1>
+        <p>
+          Mỗi đầu số gắn với một kịch bản IVR có phiên bản riêng. Bấm tên kịch bản để mở trình
+          dựng luồng.
+        </p>
+      </div>
+
+      <div className="number-stats">
+        {(
+          [
+            {
+              key: "total",
+              label: "Tổng đầu số",
+              value: total,
+              hint: "Đang cấu hình trên hệ thống",
+            },
+            {
+              key: "active",
+              label: "Đang hoạt động",
+              value: active,
+              hint: "Có phiên bản đang chạy thật",
+            },
+            {
+              key: "drafts",
+              label: "Bản nháp chờ publish",
+              value: drafts,
+              hint: "Cần review trước khi phát hành",
+            },
+          ] as const
+        ).map((stat) => (
+          <div key={stat.key} className="number-stat" data-testid="number-stat" data-stat={stat.key}>
+            <div className="number-stat-label">{stat.label}</div>
+            <div className="number-stat-value num" data-testid="number-stat-value">
+              {phase === "ready" ? stat.value : "—"}
+            </div>
+            <div className="number-stat-hint" data-testid="number-stat-hint">
+              {stat.hint}
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="numbers-toolbar">
-        <button
-          type="button"
-          data-testid="number-create"
-          onClick={openDialog}
-          disabled={phase !== "ready"}
-        >
-          Thêm đầu số
-        </button>
+        <input
+          type="text"
+          className="number-search"
+          data-testid="number-search"
+          placeholder="Tìm đầu số hoặc tên kịch bản…"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <div className="number-create-wrap">
+          <button
+            type="button"
+            className="number-create"
+            data-testid="number-create"
+            onClick={openDialog}
+            disabled={phase !== "ready"}
+          >
+            <span className="number-create-plus">+</span> Thêm
+          </button>
+        </div>
       </div>
       {phase === "loading" ? (
         <p className="numbers-loading">Đang tải…</p>
@@ -203,42 +317,97 @@ export default function NumbersScreen() {
         <p className="numbers-empty" data-testid="numbers-empty">
           Chưa có đầu số nào
         </p>
+      ) : visibleDids.length === 0 ? (
+        <div className="numbers-table-wrap">
+          <p className="numbers-filter-empty" data-testid="numbers-filter-empty">
+            Không có đầu số nào khớp bộ lọc
+          </p>
+        </div>
       ) : (
-        <table className="numbers-table">
-          <thead>
-            <tr>
-              <th scope="col">Số</th>
-              <th scope="col">Kịch bản đang chạy</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dids.map((did) => {
-              const flow = flowOf(did);
-              return (
-                <tr
-                  key={did.id}
-                  data-testid="number-row"
-                  data-did-id={did.id}
-                  data-published-version-id={did.publishedVersionId ?? undefined}
-                >
-                  <td data-testid="number-value">{did.number}</td>
-                  {/* Ô kịch bản không bao giờ rỗng: chưa gán → "Chưa có kịch
-                      bản"; gán mà không tìm ra → "Không tìm thấy kịch bản
-                      đang chạy" (3-plan-05). */}
-                  <td data-testid="number-flow">
-                    {did.publishedVersionId === null
-                      ? "Chưa có kịch bản"
-                      : flow === undefined
-                        ? "Không tìm thấy kịch bản đang chạy"
-                        : // Id thô, không encodeURIComponent — flowId là uuid
-                          // (plan.md Tự quyết iter 5).
-                          <a href={`#/flows/${flow.id}`}>{flow.name}</a>}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="numbers-table-wrap">
+          <table className="numbers-table">
+            <thead>
+              <tr>
+                <th scope="col">Đầu số</th>
+                <th scope="col">Nhà mạng</th>
+                <th scope="col">Kịch bản</th>
+                <th scope="col">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleDids.map((did) => {
+                const flow = flowOf(did);
+                const info = flow !== undefined ? flowInfo.get(flow.id) : undefined;
+                const versionNumber = info?.versionNumber ?? null;
+                const isActive = did.publishedVersionId !== null;
+                return (
+                  <tr
+                    key={did.id}
+                    data-testid="number-row"
+                    data-did-id={did.id}
+                    data-published-version-id={did.publishedVersionId ?? undefined}
+                  >
+                    <td>
+                      <span className="number-value num" data-testid="number-value">
+                        {did.number}
+                      </span>
+                      {/* Ô kịch bản không bao giờ rỗng: chưa gán → "Chưa có kịch
+                          bản"; gán mà không tìm ra → "Không tìm thấy kịch bản
+                          đang chạy" (3-plan-05). */}
+                      <div className="number-flow" data-testid="number-flow">
+                        {did.publishedVersionId === null
+                          ? "Chưa có kịch bản"
+                          : flow === undefined
+                            ? "Không tìm thấy kịch bản đang chạy"
+                            : // Id thô, không encodeURIComponent — flowId là uuid
+                              // (plan.md Tự quyết iter 5).
+                              <a href={`#/flows/${flow.id}`}>{flow.name}</a>}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="number-provider" data-testid="number-provider">
+                        {did.provider ?? "—"}
+                      </span>
+                      <div className="number-kind" data-testid="number-kind">
+                        {did.kind ?? "—"}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="number-version-row">
+                        <span
+                          className="number-version num"
+                          data-testid="number-version"
+                          data-unpublished={versionNumber === null ? "true" : undefined}
+                        >
+                          {versionNumber === null ? "chưa publish" : `v${versionNumber}`}
+                        </span>
+                        <span className="number-node-count num" data-testid="number-node-count">
+                          {info?.nodeCount != null ? `${info.nodeCount} node` : "—"}
+                        </span>
+                      </div>
+                      {info?.hasDraft === true ? (
+                        <div className="number-draft" data-testid="number-draft">
+                          <span className="number-draft-dot" />
+                          có bản nháp chưa publish
+                        </div>
+                      ) : null}
+                    </td>
+                    <td>
+                      <span
+                        className="number-status"
+                        data-testid="number-status"
+                        data-state={isActive ? "active" : "draft"}
+                      >
+                        <span className="status-dot" data-testid="status-dot" />
+                        {isActive ? "Hoạt động" : "Nháp"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
       {dialogOpen ? (
         <CreateNumberDialog onClose={closeDialog} onCreated={handleCreated} />
