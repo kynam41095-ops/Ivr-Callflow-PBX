@@ -1,97 +1,415 @@
+/* Kích thước chép nguyên px từ IVR Builder v3.dc.html dòng 143-267 và
+   1548-1575 (bản dựng thử, phase-00/design-20260919-frontend-shell). html
+   của app là 14px (src/index.css) - không dùng rem để tránh quy đổi sai gốc,
+   viết thẳng px hoặc token spacing/font-size/radius khi trùng khớp. .num
+   (mono + tabular-nums) đã định nghĩa một lần ở src/index.css - không khai
+   lại ở đây; phần tử mang .num chỉ thêm font-weight/size/line-height dạng
+   longhand để không xoá font-variant-numeric bằng shorthand font. */
+
 .numbers {
-  padding: 0 0.5rem 1rem;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 32px 32px 40px;
+}
+
+.numbers-header h1 {
+  margin: 0;
+  font-weight: 650;
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+}
+
+.numbers-header p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--fg-2);
+}
+
+.number-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.number-stat {
+  padding: 16px 15px;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  background: var(--bg-raised);
+  box-shadow: var(--sh-1);
+}
+
+.number-stat-label {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--fg-2);
+}
+
+.number-stat-value {
+  margin-top: 6px;
+  font-weight: 650;
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+}
+
+.number-stat-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--fg-2);
 }
 
 .numbers-toolbar {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  flex-wrap: wrap;
 }
 
-.numbers-toolbar button {
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--bd);
-  border-radius: var(--r-sm);
-  font-size: var(--fs-base);
+.number-search {
+  width: 280px;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--fg);
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: var(--r-btn);
+  box-shadow: inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);
+}
+
+.number-search:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--acc-ring);
+}
+
+.number-create-wrap {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.number-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
   cursor: pointer;
+  font-weight: 550;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--acc-fg);
+  background: var(--acc);
+  border: 1px solid var(--acc-press);
+  border-radius: var(--r-btn);
+  box-shadow: inset 0 1px 0 var(--bevel-on-acc), var(--sh-1);
 }
 
-.numbers-toolbar button:disabled {
+.number-create:hover:not(:disabled) {
+  background: var(--acc-hov);
+}
+
+.number-create:disabled {
   cursor: default;
   opacity: 0.5;
+  background: var(--acc);
+  color: var(--acc-fg);
+}
+
+.number-create-plus {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .numbers-loading,
 .numbers-empty {
   margin: 0;
-  padding: 1rem 0;
+  padding: 16px 0;
   color: var(--fg-2);
-  font-size: var(--fs-base);
+  font-size: 14px;
+  text-align: center;
+}
+
+.numbers-filter-empty {
+  margin: 0;
+  padding: 56px 24px;
+  text-align: center;
+  font-weight: 650;
+  font-size: 16px;
+  line-height: 1.15;
+  color: var(--fg);
+}
+
+.numbers-table-wrap {
+  margin-top: 12px;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  overflow: auto hidden;
+  background: var(--bg-raised);
 }
 
 .numbers-table {
   width: 100%;
-  max-width: 48rem;
   border-collapse: collapse;
-  background: var(--bg-raised);
+  font-size: 14px;
 }
 
-.numbers-table th,
-.numbers-table td {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--bd);
+.numbers-table thead tr {
+  background: var(--bg-sub);
+}
+
+.numbers-table th {
   text-align: left;
-  font-size: var(--fs-base);
+  font-weight: 550;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fg-2);
+  padding: 12px 16px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--bd);
 }
 
-.number-dialog {
-  width: min(24rem, calc(100vw - 2rem));
-  padding: 1rem 1.25rem;
+.numbers-table tbody tr {
+  border-bottom: 1px solid var(--bd-sub);
+}
+
+.numbers-table tbody tr:hover {
+  background: var(--bg-sub);
+}
+
+.numbers-table td {
+  padding: 12px 16px;
+}
+
+.numbers-table td:not(:first-child) {
+  white-space: nowrap;
+}
+
+.number-value {
+  display: block;
+  font-weight: 650;
+  font-size: 14px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.number-flow {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--fg-2);
+}
+
+.number-provider {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
   border: 1px solid var(--bd);
   border-radius: var(--r-sm);
+  font-weight: 550;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg-2);
+}
+
+.number-kind {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--fg-3);
+}
+
+.number-version-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.number-version {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--r-sm);
+  font-weight: 650;
+  font-size: 12px;
+  line-height: 1.15;
+  background: var(--bg-muted);
   color: var(--fg);
 }
 
+.number-version[data-unpublished="true"] {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.number-node-count {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--fg-3);
+}
+
+.number-draft {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--warn);
+}
+
+.number-draft-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn-dot);
+}
+
+.number-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  font-weight: 550;
+  font-size: 11px;
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.number-status[data-state="active"] {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.number-status[data-state="draft"] {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.number-status .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.number-status[data-state="active"] .status-dot {
+  background: var(--ok-dot);
+}
+
+.number-status[data-state="draft"] .status-dot {
+  background: var(--warn-dot);
+}
+
+.number-dialog {
+  box-sizing: border-box;
+  width: min(520px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-3);
+  background: var(--bg-raised);
+  color: var(--fg);
+  flex-direction: column;
+  gap: 15px;
+}
+
+.number-dialog[open] {
+  display: flex;
+}
+
+.number-dialog::backdrop {
+  background: var(--scrim);
+}
+
 .number-dialog h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
+  margin: 0;
+  font-weight: 650;
+  font-size: 16px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 .number-dialog form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 15px;
 }
 
 .number-dialog-label {
-  color: var(--fg-2);
-  font-size: var(--fs-sm);
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 550;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fg);
 }
 
 .number-dialog input {
   box-sizing: border-box;
   width: 100%;
-  padding: 0.375rem 0.5rem;
-  border: 1px solid var(--bd);
-  border-radius: var(--r-sm);
-  font: inherit;
-  color: inherit;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 14px;
+  color: var(--fg);
   background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: var(--r-btn);
+  box-shadow: inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);
+}
+
+.number-dialog input:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--acc-ring);
 }
 
 .number-dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .number-dialog-actions button {
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--bd);
-  border-radius: var(--r-sm);
-  font-size: var(--fs-base);
+  height: 36px;
+  padding: 0 16px;
   cursor: pointer;
+  font-weight: 550;
+  font-size: 14px;
+  line-height: 1.6;
+  border-radius: var(--r-btn);
+}
+
+.number-dialog-actions button[data-testid="number-cancel"] {
+  color: var(--fg);
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  box-shadow: inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);
+}
+
+.number-dialog-actions button[data-testid="number-cancel"]:hover {
+  background: var(--bg-muted);
+}
+
+.number-dialog-actions button[data-testid="number-submit"] {
+  color: var(--acc-fg);
+  background: var(--acc);
+  border: 1px solid var(--acc);
+  box-shadow: none;
+}
+
+.number-dialog-actions button[data-testid="number-submit"]:hover {
+  background: var(--acc-hov);
 }
 
 .number-dialog-actions button:disabled {
@@ -100,7 +418,7 @@
 }
 
 .number-create-error {
-  margin: 0;
+  margin: 4px 0 0;
   color: var(--err);
-  font-size: var(--fs-sm);
+  font-size: 14px;
 }

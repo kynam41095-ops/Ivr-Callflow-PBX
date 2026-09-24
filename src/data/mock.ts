@@ -198,6 +198,18 @@ export const versionStore: StoredVersion[] = [
 // flow.publishedVersionId = version.id. Bản ghi đầu số không mang tài liệu
 // hay tên kịch bản.
 export const didStore: Did[] = [
-  { id: DID_HOTLINE, number: "1900123456", publishedVersionId: VERSION_MAIN_PUBLISHED },
-  { id: DID_FRESH, number: "0283456789", publishedVersionId: null },
+  {
+    id: DID_HOTLINE,
+    number: "1900123456",
+    publishedVersionId: VERSION_MAIN_PUBLISHED,
+    provider: "Viettel",
+    kind: "Hotline 1900",
+  },
+  {
+    id: DID_FRESH,
+    number: "0283456789",
+    publishedVersionId: null,
+    provider: "VNPT",
+    kind: "Số cố định",
+  },
 ];
