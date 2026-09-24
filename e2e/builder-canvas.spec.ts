@@ -146,10 +146,10 @@ test.describe("builder-canvas", () => {
 
     await expect(
       menuNode.locator('[data-testid="handle-label"][data-handleid="choice-1"]'),
-    ).toHaveText("1");
+    ).toHaveText("Phím 1");
     await expect(
       menuNode.locator('[data-testid="handle-label"][data-handleid="choice-2"]'),
-    ).toHaveText("2");
+    ).toHaveText("Phím 2");
 
     const allLabels = menuNode.locator('[data-testid="handle-label"]');
     await expect(allLabels).toHaveCount(4);

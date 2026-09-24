@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import {
+  Background,
+  BackgroundVariant,
+  Controls,
+  MiniMap,
   ReactFlow,
   ReactFlowProvider,
   applyEdgeChanges,
@@ -12,7 +16,6 @@ import {
   type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import "../../styles/tokens.css";
 import "./builder.css";
 import {
   createFlow,
@@ -26,13 +29,15 @@ import {
   type QueueRecord,
 } from "../../data/api";
 import { fromCanvas, toCanvas } from "../../flow/canvas";
-import { NodeIssuesContext, nodeTypes } from "../../canvas/FlowNode";
+import { CatalogContext, NodeIssuesContext, nodeTypes } from "../../canvas/FlowNode";
+import { styledEdges } from "../../canvas/edges";
 import { collectIssues, type NodeIssue, type ValidationView } from "../../canvas/issues";
 import {
   NEW_FLOW_NAME,
   STEP_TYPES,
   newFlowDocument,
   newNodeData,
+  tokenSuffix,
   type StepType,
 } from "../../canvas/steps";
 import { ErrorState } from "../../ui/ErrorState";
@@ -376,6 +381,26 @@ function BuilderInner({ flowId }: { flowId: string }) {
       : validation.issues.filter((issue) => issue.severity === "warning").length;
 
   const selectedNode = nodes.find((node) => node.selected);
+  const catalog = useMemo(() => ({ media, queues }), [media, queues]);
+  // Cạnh tô màu lúc render (AC-31) — memo hoá vì styledEdges tạo mảng mới
+  // mỗi lần gọi; gọi thẳng trong JSX làm mọi thẻ render lại theo tham chiếu
+  // (review vòng 3 lô 7 MINOR). Bảng id→loại dựng theo khoá chuỗi "id:type",
+  // chỉ đổi khi thêm/xoá/đổi loại node — kéo node (đổi position) không làm
+  // canvasEdges tính lại (review vòng 3 lô 7 MINOR 3).
+  const nodeTypeKey = nodes.map((node) => `${node.id}:${node.type ?? ""}`).join(",");
+  const typeById = useMemo(
+    () =>
+      new Map(
+        nodeTypeKey === ""
+          ? []
+          : nodeTypeKey.split(",").map((entry): [string, string] => {
+              const sep = entry.indexOf(":");
+              return [entry.slice(0, sep), entry.slice(sep + 1)];
+            }),
+      ),
+    [nodeTypeKey],
+  );
+  const canvasEdges = useMemo(() => styledEdges(edges, typeById), [edges, typeById]);
 
   // Mở drawer: xoá lỗi khôi phục cũ để lần mở sau không hiện lại thông báo
   // của lần trước (plan.md Tự quyết iter 9).
@@ -478,17 +503,28 @@ function BuilderInner({ flowId }: { flowId: string }) {
           <ErrorState message={`Không tải được kịch bản: ${errorMessage}`} onRetry={reload} />
         ) : (
           <NodeIssuesContext.Provider value={issuesByNode}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onDrop={onDrop}
-              onDragOver={onDragOver}
-              fitView
-            />
+            <CatalogContext.Provider value={catalog}>
+              <ReactFlow
+                nodes={nodes}
+                edges={canvasEdges}
+                nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                fitView
+              >
+                <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="var(--grid)" />
+                <Controls position="bottom-right" showInteractive={false} />
+                <MiniMap
+                  position="bottom-left"
+                  style={{ width: 152, height: 104 }}
+                  nodeColor={(node) => `var(--n-${tokenSuffix(node.type ?? "")}-b)`}
+                  maskStrokeColor="var(--acc)"
+                />
+              </ReactFlow>
+            </CatalogContext.Provider>
           </NodeIssuesContext.Provider>
         )}
       </div>
