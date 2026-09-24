@@ -1,0 +1,52 @@
+/*
+ * Fixture cho TC-FLOW-028 (AC-27) — chép nguyên văn dòng 17-58 của
+ * IVR Builder v3.dc.html (bản dựng thử, phase-00/design-20260919-frontend-shell).
+ * Ngày kéo: 24/09/2026.
+ * sha256 file nguồn (toàn bộ IVR Builder v3.dc.html): 004d535e585dda783bc72fe9dafc9ebef3f5ef18327e66d94dc55604a4dea5c0
+ * sha256 khối bên dưới (dòng bắt đầu bằng dấu ngoặc nhọn root tới hết
+ * file fixture này, sau khi doi CRLF thanh LF):
+ * d229b1d647d8bf49db03d8e39ff7ed7dfb48405138abe3efefd2fcc1d4c9c2b5
+ * Khong go tay -- sinh bang sed -n 17,58p "IVR Builder v3.dc.html".
+ */
+  :root {
+    --fs-label:11px; --fs-sm:12px; --fs-base:14px; --fs-num:16px; --fs-lg:22px; --fs-hero:34px;
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-7:28px; --sp-10:40px;
+    --r-mark:2px; --r-sm:6px; --r-btn:8px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+    --dur-fast:120ms; --dur-base:160ms; --ease:cubic-bezier(.4,0,.2,1);
+    --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Inter, Roboto,
+      'Helvetica Neue', Arial, sans-serif;
+    --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas,
+      'Liberation Mono', monospace;
+
+    --bg:#faf7f3; --bg-canvas:#faf7f3; --bg-raised:#fffdfa; --bg-sub:#f7f3ee;
+    --bg-muted:#f0ece5; --bg-active:#fffdfa; --glass:#fffdfa;
+    --bd:#e8e2da; --bd-sub:#f1ece6; --bd-str:#8e8a83;
+    --fg:#1e242e; --fg-2:#525862; --fg-3:#646972;
+    --acc:#325cbd; --acc-fg:#ffffff; --acc-hov:#2a4fa5; --acc-press:#23438c;
+    --acc-soft:#e3edff; --acc-ink:#2d5277; --acc-ring:rgba(50,92,189,.32);
+    --acc-veil:rgba(50,92,189,.10); --acc-line:#8fa6d4;
+    --ok:#187a3b; --ok-dot:#319751; --ok-soft:#e6f4ea; --ok-bd:#a8d5b7;
+    --warn:#945500; --warn-dot:#c57800; --warn-soft:#fbeedb; --warn-bd:#e4c393;
+    --err:#c52b30; --err-dot:#d73337; --err-soft:#fdeceb; --err-bd:#f0b3b1;
+    --info:#1f6099; --info-dot:#325cbd; --info-soft:#e3edff; --info-bd:#a9c6ee;
+    --scrim:rgba(60,50,40,.16);
+    --sh-1:0 1px 2px rgba(60,50,40,.16);
+    --sh-2:0 1px 2px rgba(60,50,40,.05), 0 4px 10px rgba(60,50,40,.07);
+    --sh-3:0 2px 4px rgba(60,50,40,.05), 0 12px 28px rgba(60,50,40,.1);
+    --bevel:rgba(255,255,255,.9); --bevel-under:rgba(60,50,40,.13);
+    --bevel-on-acc:rgba(255,255,255,.16);
+    --grid:#e7e2dc;
+    --n-start-s:oklch(0.958 0.021 152); --n-start-b:oklch(0.6 0.125 152); --n-start-i:oklch(0.6 0.125 152); --n-start-t:oklch(0.43 0.075 152);
+    --n-hangup-s:oklch(0.958 0.021 25); --n-hangup-b:oklch(0.6 0.125 25); --n-hangup-i:oklch(0.6 0.125 25); --n-hangup-t:oklch(0.43 0.075 25);
+    --n-play-s:oklch(0.958 0.021 250); --n-play-b:oklch(0.6 0.125 250); --n-play-i:oklch(0.6 0.125 250); --n-play-t:oklch(0.43 0.075 250);
+    --n-dtmf-s:oklch(0.958 0.021 262); --n-dtmf-b:oklch(0.6 0.125 262); --n-dtmf-i:oklch(0.6 0.125 262); --n-dtmf-t:oklch(0.43 0.075 262);
+    --n-survey-s:oklch(0.958 0.021 346); --n-survey-b:oklch(0.6 0.125 346); --n-survey-i:oklch(0.6 0.125 346); --n-survey-t:oklch(0.43 0.075 346);
+    --n-time-s:oklch(0.958 0.021 70); --n-time-b:oklch(0.6 0.125 70); --n-time-i:oklch(0.6 0.125 70); --n-time-t:oklch(0.43 0.075 70);
+    --n-branch-s:oklch(0.958 0.021 50); --n-branch-b:oklch(0.6 0.125 50); --n-branch-i:oklch(0.6 0.125 50); --n-branch-t:oklch(0.43 0.075 50);
+    --n-black-s:oklch(0.958 0.021 38); --n-black-b:oklch(0.6 0.125 38); --n-black-i:oklch(0.6 0.125 38); --n-black-t:oklch(0.43 0.075 38);
+    --n-ext-s:oklch(0.958 0.021 295); --n-ext-b:oklch(0.6 0.125 295); --n-ext-i:oklch(0.6 0.125 295); --n-ext-t:oklch(0.43 0.075 295);
+    --n-queue-s:oklch(0.958 0.021 310); --n-queue-b:oklch(0.6 0.125 310); --n-queue-i:oklch(0.6 0.125 310); --n-queue-t:oklch(0.43 0.075 310);
+    --n-api-s:oklch(0.958 0.021 196); --n-api-b:oklch(0.6 0.125 196); --n-api-i:oklch(0.6 0.125 196); --n-api-t:oklch(0.43 0.075 196);
+    --n-setvar-s:oklch(0.958 0.021 206); --n-setvar-b:oklch(0.6 0.125 206); --n-setvar-i:oklch(0.6 0.125 206); --n-setvar-t:oklch(0.43 0.075 206);
+    --n-goto-s:oklch(0.958 0.021 118); --n-goto-b:oklch(0.6 0.125 118); --n-goto-i:oklch(0.6 0.125 118); --n-goto-t:oklch(0.43 0.075 118);
+  }

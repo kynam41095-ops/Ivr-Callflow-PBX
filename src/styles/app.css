@@ -8,6 +8,5 @@
 }
 
 .app-header nav a {
-  color: var(--color-accent);
-  font-size: var(--font-size-md);
+  font-size: var(--fs-base);
 }
