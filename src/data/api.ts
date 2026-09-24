@@ -19,6 +19,30 @@ export type { MediaAsset, QueueRecord };
 // trong bộ nhớ; đợt 1 thay bằng HTTP thật không đổi chữ ký.
 // Mọi hàm async và trả bản sao — màn hình không sửa được kho.
 
+// Ép lỗi ranh giới bằng ?mockFail=<tên hàm>[,<tên hàm khác>] — chỉ chế độ
+// dev; đọc import.meta.env.DEV trong thân hàm để vite build thay bằng false
+// rồi bỏ hẳn nhánh (gate: grep -rl mockFail dist/ rỗng), và để vi.stubEnv đổi
+// được. Đọc location.search TẠI MỖI LẦN GỌI — e2e bật/gỡ bằng
+// history.replaceState không tải lại trang; không có location (Vitest môi
+// trường node) → không làm gì, hành vi cũ giữ nguyên. Hỏng MỌI lần gọi chừng
+// nào query còn đó — "hỏng một lần" sẽ bị lần gọi đã huỷ của StrictMode nuốt
+// (plan.md Tự quyết iter 9). So khớp chính xác, phân biệt hoa thường bằng
+// includes của mảng — ?mockFail=__proto__ vô hại. Đợt 1 thay bằng chặn mạng
+// thật rồi bỏ hàm này.
+function failIfMocked(name: string): void {
+  if (import.meta.env.DEV) {
+    if (typeof location === "undefined") {
+      return;
+    }
+    const mocked = new URLSearchParams(location.search)
+      .getAll("mockFail")
+      .flatMap((value) => value.split(","));
+    if (mocked.includes(name)) {
+      throw new Error(`Lỗi giả lập khi gọi ${name} (mockFail)`);
+    }
+  }
+}
+
 export type Did = {
   id: string;
   number: string;
@@ -57,14 +81,17 @@ function toSummary(stored: StoredVersion): FlowVersionSummary {
 }
 
 export async function listPhoneNumbers(): Promise<Did[]> {
+  failIfMocked("listPhoneNumbers");
   return structuredClone(didStore);
 }
 
 export async function listFlows(): Promise<FlowSummary[]> {
+  failIfMocked("listFlows");
   return structuredClone(flowStore);
 }
 
 export async function listVersions(flowId: string): Promise<FlowVersionSummary[]> {
+  failIfMocked("listVersions");
   const flowExists = flowStore.some((flow) => flow.id === flowId);
   if (!flowExists) {
     throw new Error(`Không tìm thấy kịch bản với id "${flowId}"`);
@@ -81,6 +108,7 @@ export async function getVersion(
   flowId: string,
   versionId: string,
 ): Promise<{ version: FlowVersionSummary; document: FlowDocument }> {
+  failIfMocked("getVersion");
   const stored = versionStore.find((v) => v.id === versionId && v.flowId === flowId);
   if (!stored) {
     throw new Error(
@@ -93,11 +121,13 @@ export async function getVersion(
 // Danh mục file âm thanh (GET /media) — trả mảng, bỏ quota vì không màn nào
 // dùng (Out of Scope "Màn hình file âm thanh").
 export async function listMedia(): Promise<MediaAsset[]> {
+  failIfMocked("listMedia");
   return structuredClone(mediaCatalog);
 }
 
 // Danh sách hàng đợi của tenant (GET /resources/queues, items[]).
 export async function listQueues(): Promise<QueueRecord[]> {
+  failIfMocked("listQueues");
   return structuredClone(queueCatalog);
 }
 
@@ -117,6 +147,7 @@ export async function saveDraft(
   document: FlowDocument,
   restoredFromVersionId?: string,
 ): Promise<FlowVersionSummary> {
+  failIfMocked("saveDraft");
   // Bản chụp đồng bộ TRƯỚC await đầu tiên — người gọi sửa object sau đó không
   // rò vào kho (rủi ro "Bản chụp", 3-plan-04).
   const snapshot = structuredClone(document);
@@ -177,6 +208,7 @@ export async function saveDraft(
 
 // POST /flows — tạo kịch bản mới, KHÔNG tạo phiên bản (trả FlowSummary).
 export async function createFlow(name: string): Promise<FlowSummary> {
+  failIfMocked("createFlow");
   const trimmed = name.trim();
   if (trimmed === "" || name.length > 200) {
     throw new Error("Tên kịch bản phải có từ 1 đến 200 ký tự");
@@ -189,4 +221,26 @@ export async function createFlow(name: string): Promise<FlowSummary> {
   };
   flowStore.push(flow);
   return structuredClone(flow);
+}
+
+// Ứng gần nhất POST /admin/dids (contract chưa có endpoint phía tenant — xem
+// 3-plan-05 Cross-module impact): maxLength 32, trùng số ứng 409. Không trễ.
+// Không ép định dạng số (E.164, chỉ chữ số…) — contract và requirements không
+// chốt (plan.md Tự quyết iter 9).
+export async function createPhoneNumber(number: string): Promise<Did> {
+  failIfMocked("createPhoneNumber");
+  const trimmed = number.trim();
+  if (trimmed === "" || trimmed.length > 32) {
+    throw new Error("Số điện thoại phải có từ 1 đến 32 ký tự");
+  }
+  if (didStore.some((each) => each.number === trimmed)) {
+    throw new Error(`Đầu số ${trimmed} đã tồn tại`);
+  }
+  const did: Did = {
+    id: crypto.randomUUID(),
+    number: trimmed,
+    publishedVersionId: null,
+  };
+  didStore.push(did);
+  return structuredClone(did);
 }

@@ -102,16 +102,11 @@
   background: var(--color-surface);
 }
 
-.builder-loading,
-.builder-error {
+.builder-loading {
   margin: 0;
   padding: 1rem;
   color: var(--color-text-muted);
   font-size: var(--font-size-md);
-}
-
-.builder-error {
-  color: var(--color-danger);
 }
 
 .builder-node {

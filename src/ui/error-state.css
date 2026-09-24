@@ -1,0 +1,23 @@
+.error-state {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  color: var(--color-danger);
+  font-size: var(--font-size-md);
+}
+
+.error-state p {
+  margin: 0;
+}
+
+.error-state button {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}

@@ -6,7 +6,9 @@ import {
   type ComponentType,
   type LazyExoticComponent,
 } from "react";
+import "./styles/app.css";
 import BuilderScreen from "./screens/builder/BuilderScreen";
+import NumbersScreen from "./screens/numbers/NumbersScreen";
 
 let SpikePage: LazyExoticComponent<ComponentType> | null = null;
 if (import.meta.env.DEV) {
@@ -31,14 +33,25 @@ export default function App() {
   const flowId = flowMatch ? flowMatch[1] : null;
   return (
     <main>
-      <h1>IVR Builder</h1>
+      <div className="app-header">
+        <h1>IVR Builder</h1>
+        <nav>
+          <a data-testid="nav-numbers" href="#/numbers">
+            Đầu số
+          </a>
+        </nav>
+      </div>
       {flowId !== null ? (
         <BuilderScreen key={flowId} flowId={flowId} />
       ) : SpikePage !== null && hash === "#/spike" ? (
         <Suspense fallback={null}>
           <SpikePage />
         </Suspense>
-      ) : null}
+      ) : (
+        // Mọi hash khác (kể cả rỗng và hash lạ) rơi về màn quản lý đầu số —
+        // trang mặc định của lô 5.
+        <NumbersScreen />
+      )}
     </main>
   );
 }

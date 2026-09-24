@@ -160,6 +160,38 @@ describe("saveDraft — dữ liệu nhập bất thường: reject, kho không �
   });
 });
 
+describe("ca dời từ lô 4 (review iter 8 MINOR) — restoredFromVersionId thuộc kịch bản khác", () => {
+  it(
+    "restoredFromVersionId là phiên bản có thật nhưng của một kịch bản KHÁC → reject cả hai chiều, " +
+      "listVersions của cả hai kịch bản giữ nguyên độ dài (khoá hồi quy cho lô 5)",
+    async () => {
+      const flowsBefore = await listFlows();
+      const flowA = flowsBefore.find((f) => f.publishedVersionId !== null);
+      expect(flowA, "cần một kịch bản A có publishedVersionId khác null").toBeDefined();
+
+      const versionsA = await listVersions(flowA!.id);
+      const archivedA = versionsA.find((v) => v.status === "archived");
+      expect(archivedA, "cần một phiên bản archived của A").toBeDefined();
+      const latestA = versionsA.reduce((a, b) => (a.versionNumber > b.versionNumber ? a : b));
+      const { document: docA } = await getVersion(flowA!.id, latestA.id);
+
+      const flowB = await createFlow("Kịch bản B — ca chéo lô 5");
+      const vB = await saveDraft(flowB.id, docA);
+
+      const versionsALenBefore = (await listVersions(flowA!.id)).length;
+      const versionsBLenBefore = (await listVersions(flowB.id)).length;
+
+      // (a) lưu cho A với id phiên bản thuộc B.
+      await expect(saveDraft(flowA!.id, docA, vB.id)).rejects.toBeDefined();
+      // (b) chiều ngược: lưu cho B với id phiên bản archived thuộc A.
+      await expect(saveDraft(flowB.id, docA, archivedA!.id)).rejects.toBeDefined();
+
+      expect((await listVersions(flowA!.id)).length).toBe(versionsALenBefore);
+      expect((await listVersions(flowB.id)).length).toBe(versionsBLenBefore);
+    },
+  );
+});
+
 describe("createFlow — tạo kịch bản mới, không tạo phiên bản", () => {
   it("createFlow trả Promise, resolve FlowSummary hợp lệ, xuất hiện trong listFlows với 0 phiên bản", async () => {
     const p = createFlow("Kịch bản mới cho unit lô 4 — trường hợp chính");

@@ -35,6 +35,8 @@ import {
   newNodeData,
   type StepType,
 } from "../../canvas/steps";
+import { ErrorState } from "../../ui/ErrorState";
+import { VersionsDrawer } from "../versions/VersionsDrawer";
 import { Inspector } from "./Inspector";
 
 type Phase = "loading" | "ready" | "error";
@@ -54,20 +56,35 @@ function BuilderInner({ flowId }: { flowId: string }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [errorMessage, setErrorMessage] = useState("");
   const [save, setSave] = useState<SaveState>({ state: "idle" });
+  // restoring/restoreError: trạng thái khôi phục phiên bản, đặt ở trình dựng
+  // (không phải drawer) — drawer có thể bị đóng giữa chừng nhưng khoá busyRef
+  // và trạng thái "đang bận" vẫn phải giữ để truyền sang nút Lưu nháp (review
+  // iter 10 BLOCKING).
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState("");
   const [validation, setValidation] = useState<ValidationView | null>(null);
   const [creating, setCreating] = useState(false);
   const [newFlowError, setNewFlowError] = useState("");
+  const [reloadToken, setReloadToken] = useState(0);
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  // versionsKey tăng mỗi lần lưu nháp thành công → drawer đang mở tự nạp lại
+  // danh sách phiên bản (3-plan-05).
+  const [versionsKey, setVersionsKey] = useState(0);
   const dragTypeRef = useRef<StepType | null>(null);
   // aliveRef chặn setState sau khi unmount (StrictMode + rời màn giữa chừng).
-  // savingRef/creatingRef chặn gọi lại trước lần render kịp disable nút.
+  // busyRef là khoá ghi DÙNG CHUNG cho lưu nháp và khôi phục phiên bản — hai
+  // thao tác không được chạy chồng nhau (review iter 10 BLOCKING). creatingRef
+  // chặn tạo kịch bản mới, để riêng. Mọi ref đặt ĐỒNG BỘ trước lần render kịp
+  // disable nút.
   const aliveRef = useRef(false);
-  const savingRef = useRef(false);
+  const busyRef = useRef(false);
   const creatingRef = useRef(false);
   const { screenToFlowPosition } = useReactFlow();
 
   // Tải phiên bản mới nhất qua ranh giới dữ liệu. Cờ huỷ trong cleanup —
-  // StrictMode chạy effect hai lần. Lỗi thì hiện role="alert", không ném,
-  // không để Promise reject trôi (lô 5 thêm nút thử lại).
+  // StrictMode chạy effect hai lần. Lỗi thì hiện role="alert" kèm nút thử lại,
+  // không ném, không để Promise reject trôi. reloadToken tăng khi bấm thử lại
+  // hoặc khôi phục phiên bản — nạp lại, bỏ sửa đổi chưa lưu (Tự quyết iter 9).
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -106,7 +123,7 @@ function BuilderInner({ flowId }: { flowId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [flowId]);
+  }, [flowId, reloadToken]);
 
   // Cờ sống: true trong thân effect, false trong cleanup. StrictMode chạy
   // mount/cleanup/mount nên kết thúc vẫn true; unmount thật thì về false.
@@ -115,6 +132,16 @@ function BuilderInner({ flowId }: { flowId: string }) {
     return () => {
       aliveRef.current = false;
     };
+  }, []);
+
+  // Nạp lại toàn bộ màn (nút thử lại, khôi phục phiên bản xong). Không đụng
+  // cờ cancelled của effect tải — token đổi thì cleanup của effect tự chạy.
+  const reload = useCallback(() => {
+    setPhase("loading");
+    setErrorMessage("");
+    setValidation(null);
+    setSave({ state: "idle" });
+    setReloadToken((token) => token + 1);
   }, []);
 
   const onNodesChange = useCallback((changes: NodeChange<Node>[]) => {
@@ -209,13 +236,14 @@ function BuilderInner({ flowId }: { flowId: string }) {
     );
   }, []);
 
-  // Lưu nháp: chụp tài liệu ĐỒNG BỘ trước await (bản chụp lúc bấm), savingRef
-  // chặn lưu hai lần. Không ném, không để Promise reject trôi thành pageerror.
+  // Lưu nháp: chụp tài liệu ĐỒNG BỘ trước await (bản chụp lúc bấm), busyRef
+  // chặn lưu hai lần và chặn chạy chồng với khôi phục. Không ném, không để
+  // Promise reject trôi thành pageerror.
   const handleSave = useCallback(() => {
-    if (savingRef.current) {
+    if (busyRef.current) {
       return;
     }
-    savingRef.current = true;
+    busyRef.current = true;
     setSave({ state: "saving" });
     const doc = fromCanvas(nodes, edges);
     (async () => {
@@ -223,6 +251,7 @@ function BuilderInner({ flowId }: { flowId: string }) {
         const saved = await saveDraft(flowId, doc);
         if (aliveRef.current) {
           setSave({ state: "saved", versionNumber: saved.versionNumber });
+          setVersionsKey((key) => key + 1);
         }
       } catch (error) {
         if (aliveRef.current) {
@@ -232,10 +261,52 @@ function BuilderInner({ flowId }: { flowId: string }) {
           });
         }
       } finally {
-        savingRef.current = false;
+        busyRef.current = false;
       }
     })();
   }, [nodes, edges, flowId]);
+
+  // Khôi phục phiên bản: getVersion → saveDraft(…, restoredFromVersionId) tạo
+  // bản nháp mới, rồi reload nạp lại canvas bằng bản đó (bỏ sửa đổi chưa lưu).
+  // Dùng CHUNG busyRef với lưu nháp — hai thao tác không chạy đồng thời, nút
+  // Lưu nháp cũng khoá trong lúc khôi phục (review iter 10 BLOCKING). Đặt ở
+  // trình dựng thay vì drawer: drawer có thể bị đóng giữa chừng nhưng khoá và
+  // trạng thái "đang bận" vẫn giữ, khôi phục vẫn chạy tới nơi tới chốn. Thành
+  // công thì tăng versionsKey để drawer đang mở nạp lại danh sách; catch chỉ
+  // phủ getVersion/saveDraft — đọc lại danh sách đi qua effect riêng của drawer
+  // nên đọc lỗi thì hiện retry, không tạo nháp trùng (review iter 9 BLOCKING).
+  const handleRestore = useCallback(
+    (versionId: string) => {
+      if (busyRef.current) {
+        return;
+      }
+      busyRef.current = true;
+      setRestoring(true);
+      setRestoreError("");
+      (async () => {
+        try {
+          const { document } = await getVersion(flowId, versionId);
+          await saveDraft(flowId, document, versionId);
+          if (aliveRef.current) {
+            setVersionsKey((key) => key + 1);
+            reload();
+          }
+        } catch (error) {
+          if (aliveRef.current) {
+            setRestoreError(
+              `Không khôi phục được: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        } finally {
+          busyRef.current = false;
+          if (aliveRef.current) {
+            setRestoring(false);
+          }
+        }
+      })();
+    },
+    [flowId, reload],
+  );
 
   // Kiểm hợp lệ: đồng bộ, thay NGUYÊN kết quả để bấm hai lần không nhân đôi
   // dấu. Dấu giữ tới lần bấm kế tiếp, không tự xoá khi sửa canvas (Tự quyết 8).
@@ -306,6 +377,14 @@ function BuilderInner({ flowId }: { flowId: string }) {
 
   const selectedNode = nodes.find((node) => node.selected);
 
+  // Mở drawer: xoá lỗi khôi phục cũ để lần mở sau không hiện lại thông báo
+  // của lần trước (plan.md Tự quyết iter 9).
+  const openVersions = useCallback(() => {
+    setRestoreError("");
+    setVersionsOpen(true);
+  }, []);
+  const closeVersions = useCallback(() => setVersionsOpen(false), []);
+
   return (
     <div className="builder">
       <div className="builder-toolbar" data-testid="builder-toolbar">
@@ -316,7 +395,7 @@ function BuilderInner({ flowId }: { flowId: string }) {
           type="button"
           data-testid="save-draft"
           onClick={handleSave}
-          disabled={phase !== "ready" || save.state === "saving"}
+          disabled={phase !== "ready" || save.state === "saving" || restoring}
         >
           Lưu nháp
         </button>
@@ -327,6 +406,11 @@ function BuilderInner({ flowId }: { flowId: string }) {
           disabled={phase !== "ready"}
         >
           Kiểm tra hợp lệ
+        </button>
+        {/* Bấm được ở MỌI phase (kể cả error) — chỉ mở, không đảo trạng thái
+            (3-plan-05). */}
+        <button type="button" data-testid="versions-open" onClick={openVersions}>
+          Phiên bản
         </button>
         <span
           className="builder-save-status"
@@ -391,9 +475,7 @@ function BuilderInner({ flowId }: { flowId: string }) {
         {phase === "loading" ? (
           <p className="builder-loading">Đang tải…</p>
         ) : phase === "error" ? (
-          <div role="alert" className="builder-error">
-            {errorMessage}
-          </div>
+          <ErrorState message={`Không tải được kịch bản: ${errorMessage}`} onRetry={reload} />
         ) : (
           <NodeIssuesContext.Provider value={issuesByNode}>
             <ReactFlow
@@ -417,6 +499,21 @@ function BuilderInner({ flowId }: { flowId: string }) {
           queues={queues}
           onDataChange={(data) => changeNodeData(selectedNode.id, data)}
           onBranchRemoved={(handle) => removeBranchEdges(selectedNode.id, handle)}
+        />
+      ) : null}
+      {/* Drawer position: fixed — không tham gia grid của .builder, phủ lên
+          cột inspector. Khôi phục giờ do trình dựng đảm nhiệm (handleRestore) —
+          drawer chỉ hiển thị danh sách và chuyển tiếp lệnh; busy khoá cả nút
+          khôi phục lẫn nút Lưu nháp trong lúc một thao tác ghi đang chạy, nên
+          đóng drawer giữa chừng không làm mất khoá (review iter 10 BLOCKING). */}
+      {versionsOpen ? (
+        <VersionsDrawer
+          flowId={flowId}
+          reloadKey={versionsKey}
+          busy={restoring || save.state === "saving"}
+          restoreError={restoreError}
+          onClose={closeVersions}
+          onRestore={handleRestore}
         />
       ) : null}
     </div>
