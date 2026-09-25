@@ -73,6 +73,30 @@ export function iconPaths(type: string): string[] {
   return raw === undefined ? [] : raw.split("|");
 }
 
+// Mã ngắn của palette (§3.9 NT[].code), tra theo tokenSuffix như ICON.
+const CODE: Readonly<Record<string, string>> = {
+  start: "ST",
+  hangup: "HG",
+  play: "PL",
+  dtmf: "KB",
+  time: "TM",
+  queue: "QU",
+};
+
+export function stepCode(type: string): string {
+  return CODE[tokenSuffix(type)] ?? "?";
+}
+
+// Nhóm palette (§3.9 GROUPS), lọc còn đúng sáu loại lô 7 dùng — nhóm rỗng
+// (Điều kiện chỉ còn time, Định tuyến chỉ còn queue, Dữ liệu bỏ hẳn) bỏ khỏi
+// bảng vì không mục nào để hiện (lot-brief lô 9).
+export const PALETTE_GROUPS: ReadonlyArray<{ name: string; types: readonly StepType[] }> = [
+  { name: "Luồng", types: ["start", "hangup"] },
+  { name: "Âm thanh & nhập", types: ["play", "menu"] },
+  { name: "Điều kiện", types: ["schedule"] },
+  { name: "Định tuyến", types: ["queue"] },
+];
+
 export function stepLabel(type: string): string {
   return STEP_TYPES.find((step) => step.type === type)?.label ?? type;
 }
@@ -136,6 +160,9 @@ export function summaryOf(
         return "—";
       }
       const time = (rule as { time: { from?: unknown; to?: unknown } }).time;
+      if (typeof time.from !== "string" || typeof time.to !== "string") {
+        return "—";
+      }
       const extra = rules.length > 1 ? ` (+${rules.length - 1})` : "";
       return `${time.from}–${time.to}${extra}`;
     }

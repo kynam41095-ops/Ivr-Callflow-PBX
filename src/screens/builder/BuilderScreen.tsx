@@ -20,23 +20,30 @@ import "./builder.css";
 import {
   createFlow,
   getVersion,
+  listFlows,
   listMedia,
+  listPhoneNumbers,
   listQueues,
   listVersions,
   saveDraft,
+  type Did,
+  type FlowSummary,
   type FlowVersionSummary,
   type MediaAsset,
   type QueueRecord,
 } from "../../data/api";
+import type { FlowDocument } from "../../flow/types";
 import { fromCanvas, toCanvas } from "../../flow/canvas";
 import { CatalogContext, NodeIssuesContext, nodeTypes } from "../../canvas/FlowNode";
 import { styledEdges } from "../../canvas/edges";
-import { collectIssues, type NodeIssue, type ValidationView } from "../../canvas/issues";
+import { collectIssues, type ValidationView, type NodeIssue } from "../../canvas/issues";
 import {
   NEW_FLOW_NAME,
-  STEP_TYPES,
+  PALETTE_GROUPS,
   newFlowDocument,
   newNodeData,
+  stepCode,
+  stepLabel,
   tokenSuffix,
   type StepType,
 } from "../../canvas/steps";
@@ -52,6 +59,53 @@ type SaveState =
   | { state: "saving" }
   | { state: "saved"; versionNumber: number }
   | { state: "error"; message: string };
+
+// So sánh cấu trúc hai giá trị JSON — dùng cho dirty-status (fromCanvas hiện
+// tại so tài liệu đã tải/lưu gần nhất). Không dùng JSON.stringify vì thứ tự
+// khoá object có thể khác giữa hai lần dù cùng nội dung (Object.fromEntries
+// giữ thứ tự chèn của canvas.ts).
+function jsonEqual(a: unknown, b: unknown): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return (
+      Array.isArray(a) &&
+      Array.isArray(b) &&
+      a.length === b.length &&
+      a.every((value, index) => jsonEqual(value, b[index]))
+    );
+  }
+  if (typeof a === "object" && a !== null && typeof b === "object" && b !== null) {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    return (
+      aKeys.length === bKeys.length &&
+      aKeys.every(
+        (key) =>
+          Object.hasOwn(b, key) &&
+          jsonEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
+      )
+    );
+  }
+  return false;
+}
+
+// Nhãn/màu trạng thái phiên bản dùng chung cho version-select và
+// version-status của builder-toolbar (lô 9, Quy ước chung).
+const VERSION_SELECT_WORD: Record<FlowVersionSummary["status"], string> = {
+  published: "đang chạy",
+  draft: "nháp",
+  archived: "lưu trữ",
+};
+const VERSION_STATUS_INFO: Record<
+  FlowVersionSummary["status"],
+  { label: string; bg: string; color: string; dot: string }
+> = {
+  published: { label: "Đang chạy thật", bg: "var(--ok-soft)", color: "var(--ok)", dot: "var(--ok-dot)" },
+  draft: { label: "Bản nháp", bg: "var(--warn-soft)", color: "var(--warn)", dot: "var(--warn-dot)" },
+  archived: { label: "Lưu trữ", bg: "var(--bg-muted)", color: "var(--fg-2)", dot: "var(--fg-3)" },
+};
 
 function BuilderInner({ flowId }: { flowId: string }) {
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -75,6 +129,14 @@ function BuilderInner({ flowId }: { flowId: string }) {
   // versionsKey tăng mỗi lần lưu nháp thành công → drawer đang mở tự nạp lại
   // danh sách phiên bản (3-plan-05).
   const [versionsKey, setVersionsKey] = useState(0);
+  // versions/openVersionId/flow/did: dữ liệu cho builder-toolbar (lô 9) —
+  // version-select, version-status, versions-open, builder-number,
+  // builder-flow-name. versions cập nhật tại chỗ khi lưu nháp (không nạp lại
+  // canvas — Quy ước chung lô 9 "lưu xong = bản vừa lưu").
+  const [versions, setVersions] = useState<FlowVersionSummary[]>([]);
+  const [openVersionId, setOpenVersionId] = useState<string | null>(null);
+  const [flow, setFlow] = useState<FlowSummary | undefined>(undefined);
+  const [did, setDid] = useState<Did | undefined>(undefined);
   const dragTypeRef = useRef<StepType | null>(null);
   // aliveRef chặn setState sau khi unmount (StrictMode + rời màn giữa chừng).
   // busyRef là khoá ghi DÙNG CHUNG cho lưu nháp và khôi phục phiên bản — hai
@@ -84,31 +146,52 @@ function BuilderInner({ flowId }: { flowId: string }) {
   const aliveRef = useRef(false);
   const busyRef = useRef(false);
   const creatingRef = useRef(false);
+  // targetVersionRef: id phiên bản cần nạp ở lần chạy tiếp theo của effect
+  // tải chính — null nghĩa là "mới nhất". reload() (thử lại, khôi phục) đặt
+  // ref này trước khi tăng reloadToken, effect tải vẫn chỉ phụ thuộc
+  // [flowId, reloadToken] (lô 9, Quy ước chung "Id cần nạp giữ trong ref").
+  const targetVersionRef = useRef<string | null>(null);
+  // loadedDoc: tài liệu lúc tải/lưu/chọn phiên bản gần nhất — PHẢI là state
+  // (không phải ref): isDirty là useMemo đọc giá trị này, một ref đổi không
+  // làm memo tính lại vì deps không đổi (review BLOCKING "dirty-status giữ
+  // 'chưa lưu' sau khi lưu nháp xong"). Chuẩn hoá qua fromCanvas(toCanvas(...))
+  // ở tải/chọn bản để so cùng hình dạng với fromCanvas(nodes, edges) — tài
+  // liệu thô có thể thiếu canvas.viewport hay toạ độ node (review MINOR).
+  const [loadedDoc, setLoadedDoc] = useState<FlowDocument | null>(null);
+  // pickingVersion: cờ STATE (không chỉ busyRef) để khoá version-select/
+  // save-draft trong lúc đang đọc bản đã chọn — ref không kích hoạt render
+  // (review BLOCKING "Chọn phiên bản trong lúc đang lưu…").
+  const [pickingVersion, setPickingVersion] = useState(false);
+  const [pickError, setPickError] = useState("");
   const { screenToFlowPosition } = useReactFlow();
 
-  // Tải phiên bản mới nhất qua ranh giới dữ liệu. Cờ huỷ trong cleanup —
-  // StrictMode chạy effect hai lần. Lỗi thì hiện role="alert" kèm nút thử lại,
-  // không ném, không để Promise reject trôi. reloadToken tăng khi bấm thử lại
-  // hoặc khôi phục phiên bản — nạp lại, bỏ sửa đổi chưa lưu (Tự quyết iter 9).
+  // Tải phiên bản (mới nhất, hoặc bản trong targetVersionRef) qua ranh giới
+  // dữ liệu. Cờ huỷ trong cleanup — StrictMode chạy effect hai lần. Lỗi thì
+  // hiện role="alert" kèm nút thử lại, không ném, không để Promise reject
+  // trôi. reloadToken tăng khi bấm thử lại hoặc khôi phục phiên bản.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [versions, mediaList, queueList] = await Promise.all([
+        const [versionList, mediaList, queueList, dids, flows] = await Promise.all([
           listVersions(flowId),
           listMedia(),
           listQueues(),
+          listPhoneNumbers(),
+          listFlows(),
         ]);
-        let latest: FlowVersionSummary | undefined;
-        for (const version of versions) {
-          if (latest === undefined || version.versionNumber > latest.versionNumber) {
-            latest = version;
+        let target = versionList.find((version) => version.id === targetVersionRef.current);
+        if (target === undefined) {
+          for (const version of versionList) {
+            if (target === undefined || version.versionNumber > target.versionNumber) {
+              target = version;
+            }
           }
         }
-        if (latest === undefined) {
+        if (target === undefined) {
           throw new Error(`Kịch bản "${flowId}" chưa có phiên bản nào`);
         }
-        const loaded = await getVersion(flowId, latest.id);
+        const loaded = await getVersion(flowId, target.id);
         if (cancelled) {
           return;
         }
@@ -117,6 +200,14 @@ function BuilderInner({ flowId }: { flowId: string }) {
         setEdges(canvas.edges);
         setMedia(mediaList);
         setQueues(queueList);
+        setVersions(versionList);
+        setOpenVersionId(target.id);
+        setFlow(flows.find((each) => each.id === flowId));
+        // Đầu số của kịch bản: DID có publishedVersionId thuộc kịch bản này
+        // (bất kỳ phiên bản nào, không chỉ bản đang mở trên canvas).
+        const versionIds = new Set(versionList.map((each) => each.id));
+        setDid(dids.find((each) => each.publishedVersionId !== null && versionIds.has(each.publishedVersionId)));
+        setLoadedDoc(fromCanvas(canvas.nodes, canvas.edges));
         setPhase("ready");
       } catch (error) {
         if (!cancelled) {
@@ -148,6 +239,56 @@ function BuilderInner({ flowId }: { flowId: string }) {
     setSave({ state: "idle" });
     setReloadToken((token) => token + 1);
   }, []);
+
+  // version-select: nạp bản đã chọn thẳng vào canvas, bỏ sửa đổi chưa lưu,
+  // không hỏi (Quy ước chung lô 9). Không đi qua reload()/phase="loading" —
+  // đổi bản để xem là một lần đọc, không phải tải lại toàn màn.
+  const pickVersion = useCallback(
+    (versionId: string) => {
+      // Đường nạp thứ ba cạnh lưu và khôi phục — dùng CHUNG busyRef, thoát
+      // sớm nếu một trong hai thao tác kia đang chạy (review BLOCKING "Chọn
+      // phiên bản trong lúc đang lưu làm đầu trang trỏ sai bản").
+      if (busyRef.current) {
+        return;
+      }
+      busyRef.current = true;
+      setPickingVersion(true);
+      setPickError("");
+      (async () => {
+        try {
+          const loaded = await getVersion(flowId, versionId);
+          if (!aliveRef.current) {
+            return;
+          }
+          const canvas = toCanvas(loaded.document);
+          setNodes(canvas.nodes);
+          setEdges(canvas.edges);
+          setOpenVersionId(versionId);
+          setValidation(null);
+          // Chọn bản khác là đường nạp mới — xoá save-status cũ ("Đã lưu bản nháp
+          // v3") để không còn thông báo của bản trước dính lại (review "Ngoài
+          // phạm vi"). Nếu test đỏ vì dòng này thì bỏ (lot-brief mục 17).
+          setSave({ state: "idle" });
+          setLoadedDoc(fromCanvas(canvas.nodes, canvas.edges));
+        } catch (error) {
+          // Giữ nguyên canvas hiện tại — version-select vẫn hiện giá trị cũ,
+          // người dùng thử chọn lại được. Báo lỗi đọc được thay vì nuốt lặng
+          // lẽ (review MINOR "pickVersion nuốt lỗi đọc phiên bản").
+          if (aliveRef.current) {
+            setPickError(
+              `Không đọc được phiên bản: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        } finally {
+          busyRef.current = false;
+          if (aliveRef.current) {
+            setPickingVersion(false);
+          }
+        }
+      })();
+    },
+    [flowId],
+  );
 
   const onNodesChange = useCallback((changes: NodeChange<Node>[]) => {
     setNodes((current) => applyNodeChanges(changes, current));
@@ -257,6 +398,10 @@ function BuilderInner({ flowId }: { flowId: string }) {
         if (aliveRef.current) {
           setSave({ state: "saved", versionNumber: saved.versionNumber });
           setVersionsKey((key) => key + 1);
+          // Lưu xong = bản vừa lưu, KHÔNG nạp lại canvas (Quy ước chung lô 9).
+          setVersions((current) => [...current, saved]);
+          setOpenVersionId(saved.id);
+          setLoadedDoc(doc);
         }
       } catch (error) {
         if (aliveRef.current) {
@@ -291,8 +436,11 @@ function BuilderInner({ flowId }: { flowId: string }) {
       (async () => {
         try {
           const { document } = await getVersion(flowId, versionId);
-          await saveDraft(flowId, document, versionId);
+          const draft = await saveDraft(flowId, document, versionId);
           if (aliveRef.current) {
+            // Khôi phục xong = nháp mới — effect tải đọc target này qua ref
+            // (Quy ước chung lô 9).
+            targetVersionRef.current = draft.id;
             setVersionsKey((key) => key + 1);
             reload();
           }
@@ -402,6 +550,17 @@ function BuilderInner({ flowId }: { flowId: string }) {
   );
   const canvasEdges = useMemo(() => styledEdges(edges, typeById), [edges, typeById]);
 
+  // canvas-status + dirty-status dùng CHUNG một useMemo (lot-brief lô 9, mục
+  // Rủi ro): currentDoc là tài liệu tương ứng canvas hiện tại, tính trực
+  // tiếp — không phụ thuộc nút Kiểm tra hợp lệ. canvasErrorCount đếm issue
+  // mức error (cảnh báo schedule KHÔNG tính — chỉ ảnh hưởng khi có lỗi thật).
+  const { canvasErrorCount, isDirty } = useMemo(() => {
+    const doc = fromCanvas(nodes, edges);
+    const errorCount = collectIssues(doc).issues.filter((issue) => issue.severity === "error").length;
+    const dirty = loadedDoc === null ? false : !jsonEqual(doc, loadedDoc);
+    return { canvasErrorCount: errorCount, isDirty: dirty };
+  }, [nodes, edges, loadedDoc]);
+
   // Mở drawer: xoá lỗi khôi phục cũ để lần mở sau không hiện lại thông báo
   // của lần trước (plan.md Tự quyết iter 9).
   const openVersions = useCallback(() => {
@@ -410,20 +569,72 @@ function BuilderInner({ flowId }: { flowId: string }) {
   }, []);
   const closeVersions = useCallback(() => setVersionsOpen(false), []);
 
+  const openVersion = versions.find((version) => version.id === openVersionId);
+
   return (
     <div className="builder">
       <div className="builder-toolbar" data-testid="builder-toolbar">
-        <button type="button" data-testid="new-flow" onClick={handleNewFlow} disabled={creating}>
-          Kịch bản mới
-        </button>
-        <button
-          type="button"
-          data-testid="save-draft"
-          onClick={handleSave}
-          disabled={phase !== "ready" || save.state === "saving" || restoring}
+        <a
+          className="builder-nav-numbers"
+          data-testid="nav-numbers"
+          href="#/numbers"
+          aria-label="Về danh sách đầu số"
         >
-          Lưu nháp
+          ←
+        </a>
+        <span className="builder-number num" data-testid="builder-number">
+          {did?.number ?? "Chưa gán đầu số"}
+        </span>
+        <span className="builder-flow-name" data-testid="builder-flow-name">
+          {flow?.name ?? ""}
+        </span>
+        <select
+          className="builder-version-select"
+          data-testid="version-select"
+          value={openVersionId ?? ""}
+          onChange={(event) => pickVersion(event.target.value)}
+          disabled={phase !== "ready" || save.state === "saving" || restoring || pickingVersion}
+        >
+          {versions.map((version) => (
+            <option key={version.id} value={version.id}>
+              v{version.versionNumber} · {VERSION_SELECT_WORD[version.status]}
+            </option>
+          ))}
+        </select>
+        {openVersion !== undefined ? (
+          <span
+            className="builder-version-status"
+            data-testid="version-status"
+            style={{
+              background: VERSION_STATUS_INFO[openVersion.status].bg,
+              color: VERSION_STATUS_INFO[openVersion.status].color,
+            }}
+          >
+            <span
+              className="status-dot"
+              data-testid="status-dot"
+              style={{ background: VERSION_STATUS_INFO[openVersion.status].dot }}
+            />
+            {VERSION_STATUS_INFO[openVersion.status].label}
+          </span>
+        ) : null}
+        {/* Bấm được ở MỌI phase (kể cả error) — chỉ mở, không đảo trạng thái
+            (3-plan-05). */}
+        <button type="button" data-testid="versions-open" onClick={openVersions}>
+          Phiên bản · {versions.length}
         </button>
+        {pickError !== "" ? (
+          <span className="builder-pick-error" data-testid="pick-error" role="alert">
+            {pickError}
+          </span>
+        ) : null}
+        <span
+          className="builder-dirty-status num"
+          data-testid="dirty-status"
+          data-state={isDirty ? "unsaved" : "saved"}
+        >
+          {isDirty ? "chưa lưu" : "đã lưu"}
+        </span>
         <button
           type="button"
           data-testid="validate"
@@ -432,10 +643,16 @@ function BuilderInner({ flowId }: { flowId: string }) {
         >
           Kiểm tra hợp lệ
         </button>
-        {/* Bấm được ở MỌI phase (kể cả error) — chỉ mở, không đảo trạng thái
-            (3-plan-05). */}
-        <button type="button" data-testid="versions-open" onClick={openVersions}>
-          Phiên bản
+        <button
+          type="button"
+          data-testid="save-draft"
+          onClick={handleSave}
+          disabled={phase !== "ready" || save.state === "saving" || restoring || pickingVersion}
+        >
+          Lưu nháp
+        </button>
+        <button type="button" data-testid="new-flow" onClick={handleNewFlow} disabled={creating}>
+          Kịch bản mới
         </button>
         <span
           className="builder-save-status"
@@ -481,77 +698,110 @@ function BuilderInner({ flowId }: { flowId: string }) {
           </span>
         ) : null}
       </div>
-      <div className="builder-palette" data-testid="palette">
-        {STEP_TYPES.map(({ type, label }) => (
-          <div
-            key={type}
-            className="builder-palette-item"
-            draggable
-            data-testid="palette-item"
-            data-node-type={type}
-            onDragStart={(event) => onPaletteDragStart(event, type)}
-            onDragEnd={onPaletteDragEnd}
-          >
-            {label}
-          </div>
-        ))}
+      <div className="builder-body">
+        <div className="builder-palette" data-testid="palette">
+          <div className="palette-title">Thư viện node</div>
+          {PALETTE_GROUPS.map((group) => (
+            <div key={group.name} className="palette-group">
+              <div className="palette-group-name">{group.name}</div>
+              {group.types.map((type) => (
+                <div
+                  key={type}
+                  className="builder-palette-item"
+                  draggable
+                  data-testid="palette-item"
+                  data-node-type={type}
+                  onDragStart={(event) => onPaletteDragStart(event, type)}
+                  onDragEnd={onPaletteDragEnd}
+                >
+                  <span
+                    className="palette-code"
+                    data-testid="palette-code"
+                    style={{
+                      background: `var(--n-${tokenSuffix(type)}-s)`,
+                      color: `var(--n-${tokenSuffix(type)}-t)`,
+                      borderColor: `var(--n-${tokenSuffix(type)}-b)`,
+                    }}
+                  >
+                    {stepCode(type)}
+                  </span>
+                  <span className="palette-label" data-testid="palette-label">
+                    {stepLabel(type)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="builder-canvas">
+          {phase === "loading" ? (
+            <p className="builder-loading">Đang tải…</p>
+          ) : phase === "error" ? (
+            <ErrorState message={`Không tải được kịch bản: ${errorMessage}`} onRetry={reload} />
+          ) : (
+            <>
+              <span className="canvas-status num" data-testid="canvas-status">
+                {nodes.length} node <span className="canvas-status-sep">·</span> {edges.length} nhánh{" "}
+                <span className="canvas-status-sep">·</span>{" "}
+                <span className={canvasErrorCount > 0 ? "canvas-status-warn" : "canvas-status-ok"}>
+                  {canvasErrorCount > 0 ? `${canvasErrorCount} cảnh báo` : "hợp lệ"}
+                </span>
+              </span>
+              <NodeIssuesContext.Provider value={issuesByNode}>
+                <CatalogContext.Provider value={catalog}>
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={canvasEdges}
+                    nodeTypes={nodeTypes}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    onDrop={onDrop}
+                    onDragOver={onDragOver}
+                    fitView
+                  >
+                    <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="var(--grid)" />
+                    <Controls position="bottom-right" showInteractive={false} />
+                    <MiniMap
+                      position="bottom-left"
+                      style={{ width: 152, height: 104 }}
+                      nodeColor={(node) => `var(--n-${tokenSuffix(node.type ?? "")}-b)`}
+                      maskStrokeColor="var(--acc)"
+                    />
+                  </ReactFlow>
+                </CatalogContext.Provider>
+              </NodeIssuesContext.Provider>
+            </>
+          )}
+        </div>
+        {phase === "ready" && selectedNode !== undefined ? (
+          <Inspector
+            node={selectedNode}
+            media={media}
+            queues={queues}
+            onDataChange={(data) => changeNodeData(selectedNode.id, data)}
+            onBranchRemoved={(handle) => removeBranchEdges(selectedNode.id, handle)}
+          />
+        ) : null}
+        {/* Drawer position: absolute trong .builder-body (position:relative,
+            không lề phải) — nằm dưới builder-toolbar, KHÔNG lớp phủ --scrim:
+            nút đầu trang, palette, canvas thao tác được khi drawer mở (lô 9).
+            Khôi phục do trình dựng đảm nhiệm (handleRestore) — drawer chỉ
+            hiển thị danh sách và chuyển tiếp lệnh; busy khoá cả nút khôi phục
+            lẫn nút Lưu nháp trong lúc một thao tác ghi đang chạy (review iter
+            10 BLOCKING). */}
+        {versionsOpen ? (
+          <VersionsDrawer
+            flowId={flowId}
+            reloadKey={versionsKey}
+            busy={restoring || save.state === "saving" || pickingVersion}
+            restoreError={restoreError}
+            openVersionId={openVersionId}
+            onClose={closeVersions}
+            onRestore={handleRestore}
+          />
+        ) : null}
       </div>
-      <div className="builder-canvas">
-        {phase === "loading" ? (
-          <p className="builder-loading">Đang tải…</p>
-        ) : phase === "error" ? (
-          <ErrorState message={`Không tải được kịch bản: ${errorMessage}`} onRetry={reload} />
-        ) : (
-          <NodeIssuesContext.Provider value={issuesByNode}>
-            <CatalogContext.Provider value={catalog}>
-              <ReactFlow
-                nodes={nodes}
-                edges={canvasEdges}
-                nodeTypes={nodeTypes}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                onDrop={onDrop}
-                onDragOver={onDragOver}
-                fitView
-              >
-                <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="var(--grid)" />
-                <Controls position="bottom-right" showInteractive={false} />
-                <MiniMap
-                  position="bottom-left"
-                  style={{ width: 152, height: 104 }}
-                  nodeColor={(node) => `var(--n-${tokenSuffix(node.type ?? "")}-b)`}
-                  maskStrokeColor="var(--acc)"
-                />
-              </ReactFlow>
-            </CatalogContext.Provider>
-          </NodeIssuesContext.Provider>
-        )}
-      </div>
-      {phase === "ready" && selectedNode !== undefined ? (
-        <Inspector
-          node={selectedNode}
-          media={media}
-          queues={queues}
-          onDataChange={(data) => changeNodeData(selectedNode.id, data)}
-          onBranchRemoved={(handle) => removeBranchEdges(selectedNode.id, handle)}
-        />
-      ) : null}
-      {/* Drawer position: fixed — không tham gia grid của .builder, phủ lên
-          cột inspector. Khôi phục giờ do trình dựng đảm nhiệm (handleRestore) —
-          drawer chỉ hiển thị danh sách và chuyển tiếp lệnh; busy khoá cả nút
-          khôi phục lẫn nút Lưu nháp trong lúc một thao tác ghi đang chạy, nên
-          đóng drawer giữa chừng không làm mất khoá (review iter 10 BLOCKING). */}
-      {versionsOpen ? (
-        <VersionsDrawer
-          flowId={flowId}
-          reloadKey={versionsKey}
-          busy={restoring || save.state === "saving"}
-          restoreError={restoreError}
-          onClose={closeVersions}
-          onRestore={handleRestore}
-        />
-      ) : null}
     </div>
   );
 }

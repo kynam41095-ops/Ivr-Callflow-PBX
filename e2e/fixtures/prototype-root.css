@@ -4,9 +4,9 @@
  * Ngày kéo: 24/09/2026.
  * sha256 file nguồn (toàn bộ IVR Builder v3.dc.html): 004d535e585dda783bc72fe9dafc9ebef3f5ef18327e66d94dc55604a4dea5c0
  * sha256 khối bên dưới (dòng bắt đầu bằng dấu ngoặc nhọn root tới hết
- * file fixture này, sau khi doi CRLF thanh LF):
+ * file fixture này, sau khi đổi CRLF thành LF):
  * d229b1d647d8bf49db03d8e39ff7ed7dfb48405138abe3efefd2fcc1d4c9c2b5
- * Khong go tay -- sinh bang sed -n 17,58p "IVR Builder v3.dc.html".
+ * Không gõ tay -- sinh bằng sed -n 17,58p "IVR Builder v3.dc.html".
  */
   :root {
     --fs-label:11px; --fs-sm:12px; --fs-base:14px; --fs-num:16px; --fs-lg:22px; --fs-hero:34px;

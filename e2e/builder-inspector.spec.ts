@@ -54,6 +54,15 @@ function fieldControl(inspector: Locator, field: string): Locator {
   return inspector.locator(`[data-field="${field}"]`).first();
 }
 
+/**
+ * Bỏ chọn node hiện tại trước khi chọn node kế tiếp — cột inspector mở làm
+ * canvas hẹp lại và viewport không refit, node ở mép phải có thể bị cắt và
+ * cú bấm chọn node kế tiếp trúng vào cột inspector (Quy ước lô 9).
+ */
+async function deselectNode(page: Page): Promise<void> {
+  await page.locator(".react-flow__pane").click({ position: { x: 5, y: 5 } });
+}
+
 test.describe("builder-inspector", () => {
   test.beforeEach(async ({ page }) => {
     await openBuilder(page);
@@ -144,6 +153,9 @@ test.describe("builder-inspector", () => {
     ];
 
     for (const { nodeId, defName } of cases) {
+      // Bỏ chọn trước khi chọn node kế tiếp: cột inspector mở làm canvas hẹp
+      // lại, viewport không refit — node mép phải có thể bị cắt.
+      await deselectNode(page);
       await page.locator(`[data-id="${nodeId}"]`).click();
       await expect(inspector).toBeVisible();
 
@@ -194,8 +206,10 @@ test.describe("builder-inspector", () => {
     const inspector = page.locator('[data-testid="inspector"]');
 
     async function selectMenuNode(): Promise<void> {
+      await deselectNode(page);
       await page.locator('[data-id="queue"]').click();
       await expect(inspector).toBeVisible();
+      await deselectNode(page);
       await page.locator('[data-id="menu"]').click();
       await expect(inspector).toBeVisible();
     }

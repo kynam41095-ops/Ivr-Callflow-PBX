@@ -23,7 +23,8 @@
   button { white-space: nowrap; line-height: 1; display: inline-flex; align-items: center;
     justify-content: center; gap: var(--sp-2);
     background: var(--bg-raised); box-shadow: var(--sh-1); }
-  button:hover { background: var(--bg-muted); }
+  button:hover:not(:disabled) { background: var(--bg-muted); }
+  button:disabled { color: var(--fg-3); cursor: default; }
   /* Every number in the app is mono with tabular figures — a live readout must
      not change width as its digits change. */
   .num { font-family: var(--mono);

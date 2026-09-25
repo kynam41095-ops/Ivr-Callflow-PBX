@@ -6,7 +6,6 @@ import {
   type ComponentType,
   type LazyExoticComponent,
 } from "react";
-import "./styles/app.css";
 import BuilderScreen from "./screens/builder/BuilderScreen";
 import NumbersScreen from "./screens/numbers/NumbersScreen";
 
@@ -33,14 +32,6 @@ export default function App() {
   const flowId = flowMatch ? flowMatch[1] : null;
   return (
     <main>
-      <div className="app-header">
-        <h1>IVR Builder</h1>
-        <nav>
-          <a data-testid="nav-numbers" href="#/numbers">
-            Đầu số
-          </a>
-        </nav>
-      </div>
       {flowId !== null ? (
         <BuilderScreen key={flowId} flowId={flowId} />
       ) : SpikePage !== null && hash === "#/spike" ? (

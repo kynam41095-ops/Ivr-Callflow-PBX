@@ -45,7 +45,12 @@ test.describe("builder-canvas", () => {
       ["hangup", "menu", "play", "queue", "schedule", "start"].sort(),
     );
 
-    const labels = (await items.allTextContents()).map((t) => t.trim());
+    // Lô 9: mỗi palette-item chứa palette-code rồi palette-label — nhãn AC-11
+    // đọc từ palette-label, không phải toàn bộ text của palette-item (mã
+    // ngắn palette-code không được tính vào nhãn).
+    const labels = (
+      await page.locator('[data-testid="palette-item"] [data-testid="palette-label"]').allTextContents()
+    ).map((t) => t.trim());
     expect(labels.sort()).toEqual(
       [
         "Bắt đầu",
@@ -276,6 +281,8 @@ test("hồi quy — hash không mã hoá hợp lệ (#/flows/%) không làm sậ
   await page.goto("/#/flows/%");
 
   await expect(page.getByRole("alert")).toBeVisible();
-  await expect(page.locator("h1")).toHaveText("IVR Builder");
+  // Lô 9: `.app-header` (và `h1` "IVR Builder") bị bỏ — trang lỗi vẫn phải
+  // giữ đường về danh sách đầu số qua nav-numbers.
+  await expect(page.locator('[data-testid="nav-numbers"]')).toBeVisible();
   expect(pageErrors, "0 sự kiện pageerror").toEqual([]);
 });

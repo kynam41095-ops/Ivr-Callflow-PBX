@@ -68,6 +68,10 @@ export type FlowVersionSummary = {
   didId: string | null;
   createdAt: string;
   createdBy: string;
+  // name/note: chỉ dùng cho drawer phiên bản (lô 9) — không thuộc contract
+  // gốc lô 2, hiển thị ở version-name/version-note.
+  name: string;
+  note: string;
 };
 
 function toSummary(stored: StoredVersion): FlowVersionSummary {
@@ -79,6 +83,8 @@ function toSummary(stored: StoredVersion): FlowVersionSummary {
     didId: stored.didId,
     createdAt: stored.createdAt,
     createdBy: stored.createdBy,
+    name: stored.name,
+    note: stored.note,
   };
 }
 
@@ -161,8 +167,9 @@ export async function saveDraft(
     throw new Error(`Không tìm thấy kịch bản với id "${flowId}"`);
   }
 
+  let restored: StoredVersion | undefined;
   if (restoredFromVersionId !== undefined) {
-    const restored = versionStore.find(
+    restored = versionStore.find(
       (each) => each.id === restoredFromVersionId && each.flowId === flowId,
     );
     if (restored === undefined) {
@@ -190,6 +197,14 @@ export async function saveDraft(
     ) + 1;
 
   const createdAt = new Date().toISOString();
+  // Tên/ghi chú drawer phiên bản (lô 9, Quy ước chung): lưu thường đặt "Bản
+  // nháp"; khôi phục từ v<k> đặt tên nhắc nguồn.
+  const name =
+    restored !== undefined ? `Nháp từ v${restored.versionNumber}` : "Bản nháp";
+  const note =
+    restored !== undefined
+      ? `Khôi phục từ phiên bản v${restored.versionNumber}.`
+      : "Lưu nháp từ trình dựng.";
   const stored: StoredVersion = {
     id: crypto.randomUUID(),
     flowId,
@@ -198,6 +213,8 @@ export async function saveDraft(
     didId: null,
     createdAt,
     createdBy: "tran.thao@mitek.vn",
+    name,
+    note,
     document: snapshot,
   };
   versionStore.push(stored);

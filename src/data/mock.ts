@@ -90,10 +90,13 @@ const ARCHIVED_DOCUMENT: FlowDocument = {
     hangup: { type: "hangup", label: "Kết thúc" },
   },
   canvas: {
+    // Cách nhau 360px — 284px thẻ + 19px điểm nối nguồn (thẻ + handle ~303px)
+    // chưa chồng lên node kế (lô 9, mục Rủi ro: 240px cũ làm thẻ chồng khi
+    // chụp TC-FLOW-034).
     positions: {
       start: { x: 0, y: 0 },
-      welcome: { x: 240, y: 0 },
-      hangup: { x: 480, y: 0 },
+      welcome: { x: 360, y: 0 },
+      hangup: { x: 720, y: 0 },
     },
   },
 };
@@ -149,14 +152,16 @@ const PUBLISHED_DOCUMENT: FlowDocument = {
     hangup: { type: "hangup", label: "Kết thúc" },
   },
   canvas: {
+    // Cách nhau 360px ngang / 220px dọc — thẻ 284px + handle 19px không còn
+    // chồng lên node kế (lô 9, mục Rủi ro).
     positions: {
-      start: { x: 0, y: 160 },
-      schedule: { x: 240, y: 160 },
-      menu: { x: 480, y: 160 },
-      "play-info": { x: 720, y: 0 },
-      queue: { x: 720, y: 160 },
-      "play-closed": { x: 720, y: 320 },
-      hangup: { x: 960, y: 160 },
+      start: { x: 0, y: 220 },
+      schedule: { x: 360, y: 220 },
+      menu: { x: 720, y: 220 },
+      "play-info": { x: 1080, y: 0 },
+      queue: { x: 1080, y: 220 },
+      "play-closed": { x: 1080, y: 440 },
+      hangup: { x: 1440, y: 220 },
     },
   },
 };
@@ -179,6 +184,8 @@ export const versionStore: StoredVersion[] = [
     didId: null,
     createdAt: "2026-09-01T03:00:00Z",
     createdBy: "tran.thao@mitek.vn",
+    name: "Bản khởi tạo",
+    note: "Ba bước chào — lời chào rồi kết thúc, chưa có hàng đợi.",
     document: ARCHIVED_DOCUMENT,
   },
   {
@@ -189,6 +196,8 @@ export const versionStore: StoredVersion[] = [
     didId: DID_HOTLINE,
     createdAt: "2026-09-10T09:30:00Z",
     createdBy: "tran.thao@mitek.vn",
+    name: "Đang triển khai chính",
+    note: "Đủ sáu loại bước, đang chạy thật trên hotline 1900123456.",
     document: PUBLISHED_DOCUMENT,
   },
 ];

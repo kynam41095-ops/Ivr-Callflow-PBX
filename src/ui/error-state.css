@@ -17,4 +17,7 @@
   border-radius: var(--r-sm);
   font-size: var(--fs-base);
   cursor: pointer;
+  /* .error-state đặt color: var(--err); button kế thừa (index.css
+     `color: inherit`) nên chữ nút cũng đỏ nếu không ghi đè (review lô 6). */
+  color: var(--fg);
 }
