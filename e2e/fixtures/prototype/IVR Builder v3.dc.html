@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<script src="ivr-flow-themed.js"></script>
+<style>
+  /* Warm paper. Ground is warm neutral, panels lift TOWARD white rather than
+     darkening toward grey; ink leans cool against it so type reads as ink on
+     stock. Six type steps, three weights, 4px spacing, warm shadows only —
+     no gradient, no backdrop-filter, no glow, no coloured shadow. */
+  :root {
+    --fs-label:11px; --fs-sm:12px; --fs-base:14px; --fs-num:16px; --fs-lg:22px; --fs-hero:34px;
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-7:28px; --sp-10:40px;
+    --r-mark:2px; --r-sm:6px; --r-btn:8px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+    --dur-fast:120ms; --dur-base:160ms; --ease:cubic-bezier(.4,0,.2,1);
+    --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Inter, Roboto,
+      'Helvetica Neue', Arial, sans-serif;
+    --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas,
+      'Liberation Mono', monospace;
+
+    --bg:#faf7f3; --bg-canvas:#faf7f3; --bg-raised:#fffdfa; --bg-sub:#f7f3ee;
+    --bg-muted:#f0ece5; --bg-active:#fffdfa; --glass:#fffdfa;
+    --bd:#e8e2da; --bd-sub:#f1ece6; --bd-str:#8e8a83;
+    --fg:#1e242e; --fg-2:#525862; --fg-3:#646972;
+    --acc:#325cbd; --acc-fg:#ffffff; --acc-hov:#2a4fa5; --acc-press:#23438c;
+    --acc-soft:#e3edff; --acc-ink:#2d5277; --acc-ring:rgba(50,92,189,.32);
+    --acc-veil:rgba(50,92,189,.10); --acc-line:#8fa6d4;
+    --ok:#187a3b; --ok-dot:#319751; --ok-soft:#e6f4ea; --ok-bd:#a8d5b7;
+    --warn:#945500; --warn-dot:#c57800; --warn-soft:#fbeedb; --warn-bd:#e4c393;
+    --err:#c52b30; --err-dot:#d73337; --err-soft:#fdeceb; --err-bd:#f0b3b1;
+    --info:#1f6099; --info-dot:#325cbd; --info-soft:#e3edff; --info-bd:#a9c6ee;
+    --scrim:rgba(60,50,40,.16);
+    --sh-1:0 1px 2px rgba(60,50,40,.16);
+    --sh-2:0 1px 2px rgba(60,50,40,.05), 0 4px 10px rgba(60,50,40,.07);
+    --sh-3:0 2px 4px rgba(60,50,40,.05), 0 12px 28px rgba(60,50,40,.1);
+    --bevel:rgba(255,255,255,.9); --bevel-under:rgba(60,50,40,.13);
+    --bevel-on-acc:rgba(255,255,255,.16);
+    --grid:#e7e2dc;
+    --n-start-s:oklch(0.958 0.021 152); --n-start-b:oklch(0.6 0.125 152); --n-start-i:oklch(0.6 0.125 152); --n-start-t:oklch(0.43 0.075 152);
+    --n-hangup-s:oklch(0.958 0.021 25); --n-hangup-b:oklch(0.6 0.125 25); --n-hangup-i:oklch(0.6 0.125 25); --n-hangup-t:oklch(0.43 0.075 25);
+    --n-play-s:oklch(0.958 0.021 250); --n-play-b:oklch(0.6 0.125 250); --n-play-i:oklch(0.6 0.125 250); --n-play-t:oklch(0.43 0.075 250);
+    --n-dtmf-s:oklch(0.958 0.021 262); --n-dtmf-b:oklch(0.6 0.125 262); --n-dtmf-i:oklch(0.6 0.125 262); --n-dtmf-t:oklch(0.43 0.075 262);
+    --n-survey-s:oklch(0.958 0.021 346); --n-survey-b:oklch(0.6 0.125 346); --n-survey-i:oklch(0.6 0.125 346); --n-survey-t:oklch(0.43 0.075 346);
+    --n-time-s:oklch(0.958 0.021 70); --n-time-b:oklch(0.6 0.125 70); --n-time-i:oklch(0.6 0.125 70); --n-time-t:oklch(0.43 0.075 70);
+    --n-branch-s:oklch(0.958 0.021 50); --n-branch-b:oklch(0.6 0.125 50); --n-branch-i:oklch(0.6 0.125 50); --n-branch-t:oklch(0.43 0.075 50);
+    --n-black-s:oklch(0.958 0.021 38); --n-black-b:oklch(0.6 0.125 38); --n-black-i:oklch(0.6 0.125 38); --n-black-t:oklch(0.43 0.075 38);
+    --n-ext-s:oklch(0.958 0.021 295); --n-ext-b:oklch(0.6 0.125 295); --n-ext-i:oklch(0.6 0.125 295); --n-ext-t:oklch(0.43 0.075 295);
+    --n-queue-s:oklch(0.958 0.021 310); --n-queue-b:oklch(0.6 0.125 310); --n-queue-i:oklch(0.6 0.125 310); --n-queue-t:oklch(0.43 0.075 310);
+    --n-api-s:oklch(0.958 0.021 196); --n-api-b:oklch(0.6 0.125 196); --n-api-i:oklch(0.6 0.125 196); --n-api-t:oklch(0.43 0.075 196);
+    --n-setvar-s:oklch(0.958 0.021 206); --n-setvar-b:oklch(0.6 0.125 206); --n-setvar-i:oklch(0.6 0.125 206); --n-setvar-t:oklch(0.43 0.075 206);
+    --n-goto-s:oklch(0.958 0.021 118); --n-goto-b:oklch(0.6 0.125 118); --n-goto-i:oklch(0.6 0.125 118); --n-goto-t:oklch(0.43 0.075 118);
+  }
+  [data-theme="dark"], html[data-theme="dark"] {
+    --bg:#16151a; --bg-canvas:#16151a; --bg-raised:#1d1c22; --bg-sub:#25242b;
+    --bg-muted:#2f2e36; --bg-active:#2f2e36; --glass:#1d1c22;
+    --bd:#302f38; --bd-sub:#26252c; --bd-str:#6a6878;
+    --fg:#eceaf2; --fg-2:#a8a5b4; --fg-3:#8d8a99;
+    --acc:#6f9bf0; --acc-fg:#16151a; --acc-hov:#87acf5; --acc-press:#5b86dc;
+    --acc-soft:#1b2740; --acc-ink:#a9c6ff; --acc-ring:rgba(111,155,240,.38);
+    --acc-veil:rgba(111,155,240,.16); --acc-line:#4d6494;
+    --ok:#4ac06e; --ok-dot:#3fae61; --ok-soft:#16301f; --ok-bd:#2c6640;
+    --warn:#d79a2b; --warn-dot:#c98a1c; --warn-soft:#332616; --warn-bd:#6b5325;
+    --err:#f0656a; --err-dot:#e2565c; --err-soft:#3a1d1f; --err-bd:#7a3a3d;
+    --info:#78aee0; --info-dot:#6f9bf0; --info-soft:#1b2740; --info-bd:#3d5480;
+    --scrim:rgba(0,0,0,.56);
+    --sh-1:0 1px 2px rgba(0,0,0,.4);
+    --sh-2:0 1px 2px rgba(0,0,0,.36), 0 4px 10px rgba(0,0,0,.44);
+    --sh-3:0 2px 4px rgba(0,0,0,.36), 0 12px 28px rgba(0,0,0,.52);
+    --bevel:rgba(255,255,255,.07); --bevel-under:transparent;
+    --bevel-on-acc:rgba(255,255,255,.14);
+    --grid:#26252c;
+    --n-start-s:oklch(0.238 0.048 152); --n-start-b:oklch(0.72 0.145 152); --n-start-i:oklch(0.72 0.145 152); --n-start-t:oklch(0.86 0.072 152);
+    --n-hangup-s:oklch(0.238 0.048 25); --n-hangup-b:oklch(0.72 0.145 25); --n-hangup-i:oklch(0.72 0.145 25); --n-hangup-t:oklch(0.86 0.072 25);
+    --n-play-s:oklch(0.238 0.048 250); --n-play-b:oklch(0.72 0.145 250); --n-play-i:oklch(0.72 0.145 250); --n-play-t:oklch(0.86 0.072 250);
+    --n-dtmf-s:oklch(0.238 0.048 262); --n-dtmf-b:oklch(0.72 0.145 262); --n-dtmf-i:oklch(0.72 0.145 262); --n-dtmf-t:oklch(0.86 0.072 262);
+    --n-survey-s:oklch(0.238 0.048 346); --n-survey-b:oklch(0.72 0.145 346); --n-survey-i:oklch(0.72 0.145 346); --n-survey-t:oklch(0.86 0.072 346);
+    --n-time-s:oklch(0.238 0.048 70); --n-time-b:oklch(0.72 0.145 70); --n-time-i:oklch(0.72 0.145 70); --n-time-t:oklch(0.86 0.072 70);
+    --n-branch-s:oklch(0.238 0.048 50); --n-branch-b:oklch(0.72 0.145 50); --n-branch-i:oklch(0.72 0.145 50); --n-branch-t:oklch(0.86 0.072 50);
+    --n-black-s:oklch(0.238 0.048 38); --n-black-b:oklch(0.72 0.145 38); --n-black-i:oklch(0.72 0.145 38); --n-black-t:oklch(0.86 0.072 38);
+    --n-ext-s:oklch(0.238 0.048 295); --n-ext-b:oklch(0.72 0.145 295); --n-ext-i:oklch(0.72 0.145 295); --n-ext-t:oklch(0.86 0.072 295);
+    --n-queue-s:oklch(0.238 0.048 310); --n-queue-b:oklch(0.72 0.145 310); --n-queue-i:oklch(0.72 0.145 310); --n-queue-t:oklch(0.86 0.072 310);
+    --n-api-s:oklch(0.238 0.048 196); --n-api-b:oklch(0.72 0.145 196); --n-api-i:oklch(0.72 0.145 196); --n-api-t:oklch(0.86 0.072 196);
+    --n-setvar-s:oklch(0.238 0.048 206); --n-setvar-b:oklch(0.72 0.145 206); --n-setvar-i:oklch(0.72 0.145 206); --n-setvar-t:oklch(0.86 0.072 206);
+    --n-goto-s:oklch(0.238 0.048 118); --n-goto-b:oklch(0.72 0.145 118); --n-goto-i:oklch(0.72 0.145 118); --n-goto-t:oklch(0.86 0.072 118);
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--sans);
+    font-size: 14px; font-weight: 450; line-height: 1.6; letter-spacing: -0.005em;
+    font-synthesis: none; text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; overflow: hidden; }
+  *, *::before, *::after { box-sizing: border-box; }
+  a { color: var(--acc); text-underline-offset: 3px; }
+  a:hover { color: var(--acc-hov); }
+  button, input, select, textarea { font-family: inherit; color: inherit; }
+  /* A control is a single-line object: its label never wraps inside a fixed
+     height, and its own line-height is its box, not the prose leading. */
+  button { white-space: nowrap; line-height: 1; display: inline-flex; align-items: center;
+    justify-content: center; gap: var(--sp-2); }
+  /* Every number in the app is mono with tabular figures — a live readout must
+     not change width as its digits change. */
+  .num { font-family: var(--mono);
+    font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; letter-spacing: -0.01em; }
+  :focus { outline: none; }
+  :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; border-radius: var(--r-sm); }
+  ::selection { background: var(--acc-soft); }
+  ::placeholder { color: var(--fg-3); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--bd-str); }
+  ::-webkit-scrollbar-track { background: transparent; }
+  @keyframes ivrPing { 0% { opacity: 1; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(2.2); } }
+  @keyframes ivrIn { from { transform: translateY(4px); } to { transform: none; } }
+  /* A sheet enters from the edge it is anchored to, not from below. */
+  @keyframes ivrSheet { from { transform: translateX(16px); } to { transform: none; } }
+  /* Slider track and thumb are pseudo-elements — the only part of a range input
+     that cannot be set inline. */
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+    border-radius: 999px; background: var(--bg-muted); outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--bg-raised); border: 2px solid var(--acc); box-shadow: var(--sh-1); cursor: pointer; }
+  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%;
+    background: var(--bg-raised); border: 2px solid var(--acc); box-shadow: var(--sh-1); cursor: pointer; }
+  input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--acc-veil); }
+  /* Tooltip. A hover-revealed sibling cannot be expressed inline, so the two
+     rules live here; everything else about it is inline on the element. */
+  .ivr-tipbox::before { content: ''; position: absolute; right: 100%; top: 50%; transform: translateY(-50%);
+    border: 5px solid transparent; border-right-color: var(--fg); }
+  /* Anchored left of its trigger instead: the inspector sits against the right
+     edge, so a tooltip opening rightwards would run off screen. */
+  .ivr-tipbox.tip-left::before { right: auto; left: 100%; border-right-color: transparent; border-left-color: var(--fg); }
+</style>
+</helmet>
+
+<div data-theme="{{ theme }}" style="display:flex;flex-direction:column;height:100vh;width:100%;background:var(--bg);color:var(--fg);font-size:14px;line-height:20px">
+
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Quản lý đầu số" style="height:100vh;overflow:auto">
+      <div style="max-width:1360px;margin:0 auto;padding:32px 32px 40px">
+
+        <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:260px">
+            <h1 style="margin:0;font:650 22px/1.15 var(--sans);letter-spacing:-0.018em">Quản lý đầu số</h1>
+            <p style="margin:5px 0 0;font-size:12px;line-height:1.65;color:var(--fg-2);text-wrap:pretty">Mỗi đầu số gắn với một kịch bản IVR có phiên bản riêng. Bấm <span style="color:var(--fg);font-weight:550">Sửa</span> để mở trình dựng luồng.</p>
+          </div>
+          <button onClick="{{ toggleTheme }}" title="{{ themeNext }}" style="flex:none;width:36px;height:36px;display:grid;place-items:center;cursor:pointer;color:var(--fg-2);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under)" style-hover="background:var(--bg-muted);color:var(--fg)">
+            <sc-if value="{{ isDark }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.9 4.9 1.4 1.4"></path><path d="m17.7 17.7 1.4 1.4"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.3 17.7-1.4 1.4"></path><path d="m19.1 4.9-1.4 1.4"></path></svg></sc-if>
+            <sc-if value="{{ isLight }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></sc-if>
+          </button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:24px">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+            <div style="border:1px solid var(--bd);border-radius:10px;padding:16px 15px;background:var(--bg-raised);box-shadow:var(--sh-1)">
+              <div style="font-size:12px;line-height:1.65;color:var(--fg-2)">{{ s.label }}</div>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">
+                <div style="font:650 22px/1.15 var(--mono);letter-spacing:-0.018em">{{ s.value }}</div>
+                <div style="font:650 14px/1.15 var(--mono);color:{{ s.deltaColor }}">{{ s.delta }}</div>
+              </div>
+              <div style="font-size:12px;line-height:1.65;color:var(--fg-2);margin-top:4px">{{ s.hint }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-top:24px;flex-wrap:wrap">
+          <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="Tìm đầu số hoặc tên dịch vụ…" style="width:280px;height:36px;padding:0 12px;font-size:14px;color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under)" style-hover="border-color:var(--bd-str)" style-focus="border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-ring)" />
+          <sc-for list="{{ facets }}" as="fc" hint-placeholder-count="2">
+            <button onClick="{{ fc.open }}" style="display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;cursor:pointer;font:550 14px/1.6 var(--sans);color:{{ fc.color }};background:{{ fc.bg }};border:1px solid {{ fc.bd }};border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);white-space:nowrap" style-hover="border-color:var(--acc)">
+              <span style="display:grid;place-items:center;color:{{ fc.iconColor }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg></span>{{ fc.label }}
+              <sc-if value="{{ fc.hasCount }}">
+                <span style="display:inline-flex;align-items:center;height:20px;min-width:20px;padding:0 6px;border-radius:6px;background:var(--acc);color:var(--acc-fg);font:650 12px/1.15 var(--mono);font-variant-numeric:tabular-nums">{{ fc.count }}</span>
+              </sc-if>
+            </button>
+          </sc-for>
+          <sc-if value="{{ anyFilter }}">
+            <button onClick="{{ clearFilters }}" style="height:36px;padding:0 10px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--fg-2);background:transparent;border:1px solid transparent;border-radius:8px;white-space:nowrap" style-hover="background:var(--bg-muted);color:var(--fg)">Xóa bộ lọc</button>
+          </sc-if>
+          <div style="margin-left:auto;display:flex;align-items:center">
+          <button onClick="{{ openCreate }}" style="display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--acc-fg);background:var(--acc);border:1px solid var(--acc-press);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel-on-acc), var(--sh-1)" style-hover="background:var(--acc-hov)" style-active="background:var(--acc-hov)">
+            <span style="font-size:16px;line-height:1">+</span>Thêm
+          </button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;border:1px solid var(--bd);border-radius:10px;overflow:auto hidden;background:var(--bg-raised)">
+          <table style="width:100%;border-collapse:collapse;font-size:14px">
+            <thead>
+              <tr style="background:var(--bg-sub)">
+                <th style="text-align:left;font:550 14px/1.6 var(--sans);color:var(--fg-2);padding:12px 16px;white-space:nowrap;border-bottom:1px solid var(--bd)">Đầu số</th>
+                <th style="text-align:left;font:550 14px/1.6 var(--sans);color:var(--fg-2);padding:12px 16px;white-space:nowrap;border-bottom:1px solid var(--bd)">Nhà mạng</th>
+                <th style="text-align:left;font:550 14px/1.6 var(--sans);color:var(--fg-2);padding:12px 16px;white-space:nowrap;border-bottom:1px solid var(--bd)">Kịch bản</th>
+                <th style="text-align:right;font:550 14px/1.6 var(--sans);color:var(--fg-2);padding:12px 16px;white-space:nowrap;border-bottom:1px solid var(--bd)">Cuộc gọi 24h</th>
+                <th style="text-align:left;font:550 14px/1.6 var(--sans);color:var(--fg-2);padding:12px 16px;white-space:nowrap;border-bottom:1px solid var(--bd)">Trạng thái</th>
+                <th style="text-align:right;font:550 14px/1.6 var(--sans);color:var(--fg-2);padding:12px 16px;white-space:nowrap;border-bottom:1px solid var(--bd)">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="0">
+                <tr onClick="{{ r.open }}" style="cursor:pointer;border-bottom:1px solid var(--bd-sub)" style-hover="background:var(--bg-sub)">
+                  <td style="padding:12px 16px">
+                    <div style="font:650 14px/1.15 var(--mono);letter-spacing:-0.01em;white-space:nowrap">{{ r.number }}</div>
+                    <div style="font-size:12px;line-height:1.65;color:var(--fg-2);margin-top:2px">{{ r.name }}</div>
+                  </td>
+                  <td style="padding:12px 16px;white-space:nowrap">
+                    <span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border:1px solid var(--bd);border-radius:6px;font:550 12px/1.5 var(--sans);color:var(--fg-2)">{{ r.provider }}</span>
+                    <div style="font-size:12px;line-height:1.65;color:var(--fg-3);margin-top:3px">{{ r.kind }}</div>
+                  </td>
+                  <td style="padding:12px 16px;white-space:nowrap">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font:650 12px/1.15 var(--mono);background:{{ r.verBg }};color:{{ r.verColor }}">{{ r.versionLabel }}</span>
+                      <span style="font-size:12px;line-height:1.65;color:var(--fg-3)">{{ r.nodeCountLabel }}</span>
+                    </div>
+                    <sc-if value="{{ r.hasDraft }}">
+                      <div style="display:flex;align-items:center;gap:4px;margin-top:4px;font-size:14px;color:var(--warn)">
+                        <span style="width:6px;height:6px;border-radius:50%;background:var(--warn-dot)"></span>có bản nháp chưa publish
+                      </div>
+                    </sc-if>
+                  </td>
+                  <td style="padding:12px 16px;text-align:right;font:650 14px/1.15 var(--mono);color:var(--fg-2);white-space:nowrap">{{ r.calls }}</td>
+                  <td style="padding:12px 16px;white-space:nowrap">
+                    <span style="display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 8px;border-radius:999px;font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;background:{{ r.stBg }};color:{{ r.stColor }}">
+                      <span style="width:6px;height:6px;border-radius:50%;background:{{ r.stDot }}"></span>{{ r.status }}
+                    </span>
+                  </td>
+                  <td style="padding:12px 16px;text-align:right;white-space:nowrap">
+                    <div style="display:inline-flex;gap:6px">
+                      <button onClick="{{ r.open }}" style="height:32px;padding:0 12px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);box-shadow:var(--sh-1)" style-hover="background:var(--bg-muted)">Sửa</button>
+                      <button onClick="{{ r.remove }}" style="height:32px;padding:0 8px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--fg-2);background:transparent;border:1px solid transparent;border-radius:8px" style-hover="background:var(--err-soft);color:var(--err)">Xóa</button>
+                    </div>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+          <sc-if value="{{ hasPager }}">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--bd);background:var(--bg-sub);flex-wrap:wrap">
+              <span style="font:450 12px/1.5 var(--sans);color:var(--fg-2);white-space:nowrap">{{ pageRangeLabel }}</span>
+              <label style="display:inline-flex;align-items:center;gap:6px;font:450 12px/1.5 var(--sans);color:var(--fg-2);white-space:nowrap">
+                Mỗi trang
+                <select value="{{ perPage }}" onChange="{{ onPerPage }}" style="height:28px;padding:0 6px;font:650 12px/1.15 var(--mono);color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px">
+                  <sc-for list="{{ perPageOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for>
+                </select>
+              </label>
+              <div style="margin-left:auto;display:flex;align-items:center;gap:4px">
+                <button onClick="{{ prevPage }}" disabled="{{ onFirst }}" title="Trang trước" style="width:28px;height:28px;display:grid;place-items:center;cursor:{{ prevCursor }};color:{{ prevColor }};background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px" style-hover="background:var(--bg-muted)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+                </button>
+                <sc-for list="{{ pages }}" as="p" hint-placeholder-count="3">
+                  <button onClick="{{ p.go }}" style="min-width:28px;height:28px;padding:0 7px;cursor:{{ p.cursor }};font:650 12px/1.15 var(--mono);font-variant-numeric:tabular-nums;color:{{ p.color }};background:{{ p.bg }};border:1px solid {{ p.bd }};border-radius:6px" style-hover="border-color:var(--acc)">{{ p.label }}</button>
+                </sc-for>
+                <button onClick="{{ nextPage }}" disabled="{{ onLast }}" title="Trang sau" style="width:28px;height:28px;display:grid;place-items:center;cursor:{{ nextCursor }};color:{{ nextColor }};background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px" style-hover="background:var(--bg-muted)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+                </button>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ listEmpty }}">
+            <div style="padding:56px 24px;text-align:center">
+              <div style="width:40px;height:40px;margin:0 auto 12px;border:1px dashed var(--bd-str);border-radius:8px"></div>
+              <div style="font:650 16px/1.15 var(--sans)">Không có đầu số nào khớp bộ lọc</div>
+              <div style="font-size:12px;line-height:1.65;color:var(--fg-2);margin-top:4px">Thử xóa từ khóa hoặc chọn lại trạng thái.</div>
+              <button onClick="{{ clearFilters }}" style="margin-top:16px;height:36px;padding:0 12px;cursor:pointer;font:550 14px/1.6 var(--sans);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);color:var(--fg)" style-hover="background:var(--bg-muted)">Xóa bộ lọc</button>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isEditor }}">
+    <div data-screen-label="Trình dựng kịch bản IVR" style="display:flex;flex-direction:column;height:100vh;overflow:hidden">
+
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--bd);flex:none;flex-wrap:wrap;background:var(--bg-raised)">
+        <button onClick="{{ backToList }}" title="Về danh sách đầu số" style="flex:none;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;font:450 16px/1.15 var(--sans);color:var(--fg-2);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under)" style-hover="background:var(--bg-muted);color:var(--fg)">←</button>
+        <div style="flex:1;min-width:150px;display:flex;flex-direction:column;gap:1px;padding-left:2px">
+          <div style="display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden">
+            <span style="flex:none;font:650 14px/1.15 var(--mono);letter-spacing:-0.01em">{{ curNumber }}</span>
+            <span style="font:450 14px/1.6 var(--sans);color:var(--fg-2);overflow:hidden;text-overflow:ellipsis">{{ curName }}</span>
+          </div>
+          <div style="font-size:12px;line-height:1.65;color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ curMeta }}</div>
+        </div>
+        <select value="{{ selectedVersionId }}" onChange="{{ onPickVersion }}" style="flex:none;height:32px;padding:0 8px;font:650 14px/1.15 var(--mono);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);color:var(--fg)" style-hover="border-color:var(--bd-str)">
+          <sc-for list="{{ versionOptions }}" as="v" hint-placeholder-count="3"><option value="{{ v.id }}">{{ v.label }}</option></sc-for>
+        </select>
+        <span style="flex:none;display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 8px;border-radius:999px;font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;background:{{ verBg }};color:{{ verColor }};white-space:nowrap">
+          <span style="width:6px;height:6px;border-radius:50%;background:{{ verDot }}"></span>{{ verStatusLabel }}
+        </span>
+        <button onClick="{{ openVersions }}" style="flex:none;height:32px;padding:0 12px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);white-space:nowrap" style-hover="background:var(--bg-muted)">Phiên bản · {{ versionCount }}</button>
+
+        <div style="flex:none;margin-left:auto;display:flex;align-items:center;gap:8px">
+          <span style="font:650 14px/1.15 var(--mono);color:{{ dirtyColor }};white-space:nowrap">{{ dirtyLabel }}</span>
+          <button onClick="{{ openKeys }}" title="Phím tắt (?)" style="flex:none;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;color:var(--fg-2);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);font:650 12px/1 var(--mono)" style-hover="background:var(--bg-muted);color:var(--fg)">?</button>
+          <button onClick="{{ toggleTheme }}" title="{{ themeNext }}" style="flex:none;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;color:var(--fg-2);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under)" style-hover="background:var(--bg-muted);color:var(--fg)">
+            <sc-if value="{{ isDark }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.9 4.9 1.4 1.4"></path><path d="m17.7 17.7 1.4 1.4"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.3 17.7-1.4 1.4"></path><path d="m19.1 4.9-1.4 1.4"></path></svg></sc-if>
+            <sc-if value="{{ isLight }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></sc-if>
+          </button>
+          <button onClick="{{ openPublish }}" style="height:32px;padding:0 12px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--acc-fg);background:var(--acc);border:1px solid var(--acc);border-radius:8px;white-space:nowrap;box-shadow:var(--sh-1)" style-hover="background:var(--acc-hov)">Publish</button>
+        </div>
+      </div>
+
+      <sc-if value="{{ readOnly }}">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--warn-soft);border-bottom:1px solid var(--warn-bd);flex:none">
+          <span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;background:transparent;border:1px solid var(--warn-bd);color:var(--warn)">Chỉ đọc</span>
+          <span style="font-size:12px;line-height:1.65;color:var(--warn)">{{ readOnlyMsg }}</span>
+          <button onClick="{{ cloneToDraft }}" style="margin-left:auto;height:32px;padding:0 12px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--acc-fg);background:var(--acc);border:1px solid var(--acc);border-radius:8px;white-space:nowrap" style-hover="background:var(--acc-hov)">Nhân bản thành nháp</button>
+        </div>
+      </sc-if>
+
+      <div style="flex:1;min-height:0;display:flex;position:relative">
+
+        <div style="width:{{ palW }};flex:none;border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:{{ palOverflow }};background:var(--bg-raised);z-index:5">
+          <div style="display:flex;align-items:center;gap:8px;padding:12px 8px 8px">
+            <sc-if value="{{ palOpen }}">
+              <div style="flex:1;min-width:0;padding-left:4px;font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Thư viện node</div>
+            </sc-if>
+            <button onClick="{{ togglePalette }}" title="{{ palToggleTitle }}" style="flex:none;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);color:var(--fg-2)" style-hover="background:var(--bg-muted);color:var(--fg)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{ palToggleIcon }}"></path></svg>
+            </button>
+          </div>
+          <sc-if value="{{ palOpen }}">
+            <div style="padding:0 12px 8px">
+              <input value="{{ paletteQuery }}" onChange="{{ onPaletteQuery }}" placeholder="Tìm node…" style="width:100%;height:32px;padding:0 10px;font-size:14px;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);color:var(--fg)" style-focus="border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-ring)" />
+            </div>
+          </sc-if>
+          <div style="flex:1;min-height:0;overflow-y:auto;overflow-x:{{ palListOverflowX }};padding:{{ palListPad }}">
+            <sc-for list="{{ paletteGroups }}" as="g" hint-placeholder-count="5">
+              <div style="margin-top:10px">
+                <sc-if value="{{ palOpen }}">
+                  <div style="font:550 14px/1.6 var(--sans);color:var(--fg-2);padding:0 2px 4px">{{ g.name }}</div>
+                </sc-if>
+                <sc-if value="{{ palClosed }}">
+                  <div style="height:1px;background:var(--bd);margin:0 4px 6px"></div>
+                </sc-if>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3">
+                    <div draggable="true" onDragStart="{{ it.onDragStart }}" onClick="{{ it.onAdd }}" onMouseEnter="{{ it.onTip }}" onMouseLeave="{{ hideTip }}" style="display:flex;align-items:center;justify-content:{{ palItemJustify }};gap:8px;padding:{{ palItemPad }};border:1px solid var(--bd);border-radius:8px;cursor:grab;background:var(--bg-raised)" style-hover="background:var(--bg-sub);border-color:var(--bd-str)">
+                      <span style="flex:none;height:19px;min-width:28px;padding:0 5px;display:grid;place-items:center;border-radius:6px;border:1px solid {{ it.br }};background:{{ it.bg }};color:{{ it.fg }};font:650 14px/1.15 var(--mono)">{{ it.code }}</span>
+                      <sc-if value="{{ palOpen }}">
+                        <span style="flex:1;min-width:0;font:550 14px/1.6 var(--sans);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ it.label }}</span>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:0;position:relative;background:var(--bg-canvas)">
+          <ivr-flow ref="{{ onFlowRef }}" style="position:absolute;inset:0;display:block"></ivr-flow>
+          <sc-if value="{{ graphEmpty }}">
+            <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;padding:28px 34px;border:1px dashed var(--bd-str);border-radius:10px;background:rgba(255,255,255,.9)">
+              <div style="font:650 16px/1.15 var(--sans)">Kịch bản đang trống</div>
+              <div style="font-size:12px;line-height:1.65;color:var(--fg-2);margin-top:4px;max-width:32ch">Kéo node <span style="color:var(--fg);font-weight:550">Bắt đầu</span> từ thư viện bên trái vào canvas.</div>
+            </div>
+          </sc-if>
+          <div style="position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;border:1px solid var(--bd);border-radius:999px;background:var(--glass);font:650 14px/1.15 var(--mono);color:var(--fg-2);white-space:nowrap">
+            <span>{{ statNodes }}</span><span style="color:var(--fg-3)">·</span><span>{{ statEdges }}</span><span style="color:var(--fg-3)">·</span><span style="color:{{ statIssueColor }}">{{ statIssues }}</span>
+          </div>
+
+          <div style="position:absolute;top:{{ barTop }};left:{{ barLeft }};right:{{ barRight }};display:flex;flex-direction:{{ barDir }};align-items:center;gap:4px;width:{{ barW }};padding:{{ barPad }};border:1px solid var(--bd);border-radius:8px;background:var(--glass);box-shadow:var(--sh-2)">
+            <button onClick="{{ toggleMarquee }}" title="{{ marqueeTitle }}" style="width:28px;height:28px;display:grid;place-items:center;cursor:pointer;background:{{ marqueeBg }};border:0;border-radius:6px;color:{{ marqueeColor }}" style-hover="background:var(--bg-muted)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{ marqueeIcon }}"></path></svg>
+            </button>
+            <span style="width:{{ divW }};height:{{ divH }};background:var(--bd);flex:none;margin:{{ divM }}"></span>
+            <button onClick="{{ undo }}" title="Hoàn tác (Ctrl+Z)" style="width:28px;height:32px;display:grid;place-items:center;cursor:pointer;background:transparent;border:0;border-radius:8px;color:{{ undoColor }}" style-hover="background:var(--bg-muted)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+            </button>
+            <button onClick="{{ redo }}" title="Làm lại (Ctrl+Shift+Z)" style="width:28px;height:32px;display:grid;place-items:center;cursor:pointer;background:transparent;border:0;border-radius:8px;color:{{ redoColor }}" style-hover="background:var(--bg-muted)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></svg>
+            </button>
+            <span style="width:{{ divW }};height:{{ divH }};background:var(--bd);flex:none;margin:{{ divM }}"></span>
+            <sc-for list="{{ edgeModes }}" as="m" hint-placeholder-count="3">
+              <button onClick="{{ m.pick }}" title="{{ m.title }}" style="width:28px;height:32px;display:grid;place-items:center;cursor:pointer;border:0;border-radius:8px;background:{{ m.bg }};color:{{ m.color }}" style-hover="background:var(--bg-muted)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{ m.d }}"></path></svg>
+              </button>
+            </sc-for>
+            <span style="width:{{ divW }};height:{{ divH }};background:var(--bd);flex:none;margin:{{ divM }}"></span>
+            <button onClick="{{ autoLayout }}" title="Tự sắp xếp luồng" style="width:28px;height:32px;display:grid;place-items:center;cursor:pointer;background:transparent;border:0;border-radius:8px;color:var(--fg-2)" style-hover="background:var(--bg-muted);color:var(--fg)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="6" height="6" rx="1"></rect><rect x="16" y="3" width="6" height="6" rx="1"></rect><rect x="16" y="15" width="6" height="6" rx="1"></rect><path d="M8 12h4v-6h4"></path><path d="M12 12v6h4"></path></svg>
+            </button>
+            <button onClick="{{ fitView }}" title="Vừa khung" style="width:28px;height:32px;display:grid;place-items:center;cursor:pointer;background:transparent;border:0;border-radius:8px;color:var(--fg-2)" style-hover="background:var(--bg-muted);color:var(--fg)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 0 1 2-2h3"></path><path d="M16 3h3a2 2 0 0 1 2 2v3"></path><path d="M21 16v3a2 2 0 0 1-2 2h-3"></path><path d="M8 21H5a2 2 0 0 1-2-2v-3"></path></svg>
+            </button>
+            <span style="width:{{ divW }};height:{{ divH }};background:var(--bd);flex:none;margin:{{ divM }}"></span>
+            <button onClick="{{ saveDraft }}" title="{{ saveTitle }}" style="width:28px;height:32px;display:grid;place-items:center;cursor:pointer;background:transparent;border:0;border-radius:8px;color:{{ saveColor }}" style-hover="background:var(--bg-muted)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <sc-if value="{{ panelOpen }}">
+        <div style="width:{{ panelW }};flex:none;margin:12px 12px 12px 0;border:1px solid var(--bd);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-raised);position:{{ panelPos }};right:0;top:0;bottom:0;z-index:20;box-shadow:{{ panelShadow }}">
+          <div onMouseDown="{{ startResize }}" title="Kéo để đổi bề rộng · double-click để về mặc định" onDoubleClick="{{ resetResize }}" style="position:absolute;left:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:2;border-radius:12px 0 0 12px;background:{{ gripBg }}" style-hover="background:var(--acc-ring)"></div>
+          <div style="flex:none;display:flex;align-items:center;gap:8px;padding:12px 12px 8px">
+            <div style="flex:1;min-width:0;font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-2)">{{ panelTitle }}</div>
+            <sc-if value="{{ hasSelection }}">
+              <button onClick="{{ duplicateNode }}" title="Nhân bản node" style="flex:none;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);color:var(--fg-2)" style-hover="background:var(--bg-muted);color:var(--fg)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+              <button onClick="{{ centerNode }}" title="Căn node vào giữa khung" style="flex:none;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);color:var(--fg-2)" style-hover="background:var(--bg-muted);color:var(--fg)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path></svg>
+              </button>
+              <button onClick="{{ deleteNode }}" title="Xóa node" style="flex:none;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);border-color:var(--err-bd);color:var(--err)" style-hover="background:var(--err-soft)" data-comment-anchor="6a84fd4381-button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+              <span style="flex:none;width:1px;height:20px;background:var(--bd)"></span>
+            </sc-if>
+            <button onClick="{{ closePanel }}" title="Thu gọn để xem flow rộng hơn" style="flex:none;width:32px;height:32px;cursor:pointer;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);color:var(--fg-2);font:450 14px/1.6 var(--sans)" style-hover="background:var(--bg-muted);color:var(--fg)">›</button>
+          </div>
+
+          <div style="flex:1;min-height:0;overflow:auto">
+              <sc-if value="{{ hasEdgeSel }}">
+                <div style="animation:ivrIn .18s ease">
+                  <div style="padding:16px;border-bottom:1px solid var(--bd-sub)">
+                    <div style="font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-2)">Đường nối</div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+                      <span style="flex:none;width:8px;height:8px;border-radius:50%;background:{{ edgeDot }}"></span>
+                      <span style="flex:1;min-width:0;font:650 16px/1.15 var(--sans);letter-spacing:-0.01em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ edgeBranch }}</span>
+                    </div>
+                  </div>
+                  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+                    <div>
+                      <div style="font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-3);margin-bottom:6px">Từ node</div>
+                      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg-sub);border-radius:8px">
+                        <span style="flex:none;height:22px;min-width:28px;padding:0 6px;display:grid;place-items:center;border-radius:6px;background:{{ edgeFromBg }};color:{{ edgeFromInk }};font:650 12px/1.15 var(--mono)">{{ edgeFromCode }}</span>
+                        <span style="flex:1;min-width:0;font-size:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ edgeFromName }}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-3);margin-bottom:6px">Đến node</div>
+                      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg-sub);border-radius:8px">
+                        <span style="flex:none;height:22px;min-width:28px;padding:0 6px;display:grid;place-items:center;border-radius:6px;background:{{ edgeToBg }};color:{{ edgeToInk }};font:650 12px/1.15 var(--mono)">{{ edgeToCode }}</span>
+                        <span style="flex:1;min-width:0;font-size:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ edgeToName }}</span>
+                      </div>
+                    </div>
+                    <button onClick="{{ deleteEdge }}" style="height:36px;padding:0 12px;cursor:pointer;font:550 14px/1 var(--sans);color:var(--err);background:var(--bg-raised);border:1px solid var(--err-bd);border-radius:8px" style-hover="background:var(--err-soft)">Xóa đường nối</button>
+                    <div style="font-size:12px;line-height:1.65;color:var(--fg-3)">Hoặc bấm Delete khi đường nối đang được chọn.</div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noSelection }}">
+                <div style="padding:48px 24px;text-align:center">
+                  <div style="width:40px;height:40px;margin:0 auto 12px;border:1px dashed var(--bd-str);border-radius:8px"></div>
+                  <div style="font:650 16px/1.15 var(--sans)">Chưa chọn node</div>
+                  <div style="font-size:12px;line-height:1.65;color:var(--fg-2);margin-top:4px">Click một node trên canvas để xem và sửa cấu hình của bước đó.</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ hasSelection }}">
+                <div style="animation:ivrIn .18s ease;padding:16px 20px 20px" data-comment-anchor="27220aff25-div">
+
+                  <input value="{{ selName }}" onChange="{{ onSelName }}" placeholder="Tên node" style="width:100%;height:44px;padding:0 14px;font:650 16px/1.15 var(--sans);letter-spacing:-0.01em;color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:10px;box-shadow:inset 0 1px 0 var(--bevel)" style-focus="border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-veil)" />
+
+                  <div style="display:flex;align-items:center;gap:8px;margin-top:20px">
+                    <span style="flex:none;height:22px;min-width:28px;padding:0 6px;display:grid;place-items:center;border-radius:6px;border:1px solid {{ selBr }};background:{{ selBg }};color:{{ selFg }};font:650 12px/1.15 var(--mono)">{{ selCode }}</span>
+                    <span style="flex:none;font:550 11px/1.25 var(--sans);letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-3);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ selTypeLabel }}</span>
+                    <button onMouseEnter="{{ onProseTip }}" onMouseLeave="{{ hideTip }}" onFocus="{{ onProseTip }}" onBlur="{{ hideTip }}" aria-label="Bước này làm gì" style="flex:none;width:18px;height:18px;display:grid;place-items:center;cursor:help;background:transparent;border:0;padding:0;color:var(--fg-3)" style-hover="color:var(--fg)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 16v-5"></path><path d="M12 8h.01"></path></svg></button>
+                    <span style="flex:1;min-width:0"></span>
+                    <span style="flex:none;font:450 12px/1.5 var(--mono);color:var(--fg-3)">{{ selId }}</span>
+                  </div>
+
+
+                  <sc-if value="{{ isTime }}">
+                    <div style="margin-top:26px">
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                        <span style="font:550 11px/1.25 var(--sans);letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-3);white-space:nowrap">Khung giờ áp dụng</span>
+                        <button onMouseEnter="{{ onTimeTip }}" onMouseLeave="{{ hideTip }}" onFocus="{{ onTimeTip }}" onBlur="{{ hideTip }}" aria-label="Giải thích" style="flex:none;width:18px;height:18px;display:grid;place-items:center;cursor:help;background:transparent;border:0;padding:0;color:var(--fg-3)" style-hover="color:var(--fg)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 16v-5"></path><path d="M12 8h.01"></path></svg></button>
+                        <span style="flex:1"></span>
+                        <button onClick="{{ addRule }}" style="height:26px;padding:0 9px;cursor:pointer;font:550 11px/1 var(--sans);letter-spacing:0.04em;text-transform:uppercase;color:var(--fg-2);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px" style-hover="background:var(--bg-muted);color:var(--fg)">+ Khung giờ</button>
+                      </div>
+
+                      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+                        <sc-for list="{{ timeRules }}" as="r" hint-placeholder-count="1">
+                          <div style="border:1px solid var(--bd);border-radius:10px;background:var(--bg-sub);overflow:hidden">
+                            <div style="display:flex;align-items:center;gap:8px;height:34px;padding:0 10px 0 12px;border-bottom:1px solid var(--bd-sub)">
+                              <span style="font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-2)">{{ r.title }}</span>
+                              <span style="flex:1;min-width:0;font:450 12px/1.5 var(--mono);color:var(--fg-3);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ r.summary }}</span>
+                              <sc-if value="{{ r.canRemove }}">
+                                <button onClick="{{ r.remove }}" title="Xóa khung giờ này" style="flex:none;width:24px;height:24px;cursor:pointer;background:transparent;border:0;border-radius:6px;color:var(--fg-3);font:450 14px/1 var(--sans)" style-hover="background:var(--err-soft);color:var(--err)">×</button>
+                              </sc-if>
+                            </div>
+                            <div style="padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px">
+                              <sc-for list="{{ r.rows }}" as="row" hint-placeholder-count="4">
+                                <div>
+                                  <div style="font:550 11px/1.25 var(--sans);letter-spacing:0.04em;text-transform:uppercase;color:var(--fg-3);margin-bottom:5px">{{ row.label }}</div>
+                                  <div style="display:flex;align-items:center;gap:6px">
+                                  <select value="{{ row.aVal }}" onChange="{{ row.aSet }}" style="height:32px;padding:0 6px;font:650 13px/1.15 var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px;box-shadow:inset 0 1px 0 var(--bevel);flex:1;min-width:0" style-focus="border-color:var(--acc)">
+                                    <sc-for list="{{ row.aOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for>
+                                  </select>
+                                  <sc-if value="{{ row.pair }}">
+                                    <span style="font:650 13px/1 var(--mono);color:var(--fg-3)">:</span>
+                                    <select value="{{ row.bVal }}" onChange="{{ row.bSet }}" style="flex:1;min-width:0;height:32px;padding:0 6px;font:650 13px/1.15 var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px;box-shadow:inset 0 1px 0 var(--bevel)" style-focus="border-color:var(--acc)">
+                                      <sc-for list="{{ row.bOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for>
+                                    </select>
+                                  </sc-if>
+                                  <span style="flex:none;width:16px;text-align:center;font-size:13px;color:var(--fg-3)">→</span>
+                                  <select value="{{ row.cVal }}" onChange="{{ row.cSet }}" style="height:32px;padding:0 6px;font:650 13px/1.15 var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px;box-shadow:inset 0 1px 0 var(--bevel);flex:1;min-width:0" style-focus="border-color:var(--acc)">
+                                    <sc-for list="{{ row.cOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for>
+                                  </select>
+                                  <sc-if value="{{ row.pair }}">
+                                    <span style="font:650 13px/1 var(--mono);color:var(--fg-3)">:</span>
+                                    <select value="{{ row.dVal }}" onChange="{{ row.dSet }}" style="flex:1;min-width:0;height:32px;padding:0 6px;font:650 13px/1.15 var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px;box-shadow:inset 0 1px 0 var(--bevel)" style-focus="border-color:var(--acc)">
+                                      <sc-for list="{{ row.dOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for>
+                                    </select>
+                                  </sc-if>
+                                  </div>
+                                </div>
+                              </sc-for>
+                            </div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ selHasOuts }}">
+                    <div style="margin-top:22px">
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                        <span style="font:550 11px/1.25 var(--sans);letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-3)">Nhánh đã nối</span>
+                        <span style="font:650 22px/1.15 var(--mono);font-variant-numeric:tabular-nums;color:{{ connColor }}">{{ connPct }}</span>
+                      </div>
+                      <div style="height:6px;border-radius:999px;background:var(--bg-muted);margin-top:8px;overflow:hidden">
+                        <span style="display:block;width:{{ connPct }};height:6px;border-radius:999px;background:{{ connColor }}"></span>
+                      </div>
+                      <div style="font-size:12px;line-height:1.6;color:var(--fg-3);margin-top:6px">{{ connSub }}</div>
+                    </div>
+                  </sc-if>
+
+                  <sc-for list="{{ fields }}" as="f" hint-placeholder-count="4">
+                    <div style="margin-top:{{ f.gap }}">
+                      <sc-if value="{{ f.isRange }}">
+                        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                          <span style="display:flex;align-items:center;gap:6px;min-width:0">
+                            <span style="font-size:14px;color:var(--fg-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ f.label }}</span>
+                            <sc-if value="{{ f.hasHint }}"><button onMouseEnter="{{ f.onTip }}" onMouseLeave="{{ hideTip }}" onFocus="{{ f.onTip }}" onBlur="{{ hideTip }}" aria-label="Giải thích" style="flex:none;width:18px;height:18px;display:grid;place-items:center;cursor:help;background:transparent;border:0;padding:0;color:var(--fg-3)" style-hover="color:var(--fg)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 16v-5"></path><path d="M12 8h.01"></path></svg></button></sc-if>
+                          </span>
+                          <span style="flex:none;font:650 16px/1.15 var(--mono);font-variant-numeric:tabular-nums">{{ f.display }}</span>
+                        </div>
+                        <input type="range" min="{{ f.min }}" max="{{ f.max }}" step="{{ f.step }}" value="{{ f.value }}" onChange="{{ f.onChange }}" style="margin-top:10px" />
+                      </sc-if>
+                      <sc-if value="{{ f.isNum }}">
+                        <div style="display:flex;align-items:center;gap:6px">
+                          <span style="font:550 11px/1.25 var(--sans);letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-3)">{{ f.label }}</span>
+                          <sc-if value="{{ f.hasHint }}"><button onMouseEnter="{{ f.onTip }}" onMouseLeave="{{ hideTip }}" onFocus="{{ f.onTip }}" onBlur="{{ hideTip }}" aria-label="Giải thích" style="flex:none;width:18px;height:18px;display:grid;place-items:center;cursor:help;background:transparent;border:0;padding:0;color:var(--fg-3)" style-hover="color:var(--fg)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 16v-5"></path><path d="M12 8h.01"></path></svg></button></sc-if>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px;margin-top:10px">
+                          <input value="{{ f.value }}" onChange="{{ f.onChange }}" style="flex:none;width:78px;height:44px;padding:0 12px;text-align:center;font:650 18px/1 var(--mono);color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:10px" style-focus="border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-veil)" />
+                          <span style="font-size:14px;color:var(--fg-2)">{{ f.suffix }}</span>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ f.isPlain }}">
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                          <label style="font:550 11px/1.25 var(--sans);letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-3)">{{ f.label }}</label>
+                          <sc-if value="{{ f.hasHint }}"><button onMouseEnter="{{ f.onTip }}" onMouseLeave="{{ hideTip }}" onFocus="{{ f.onTip }}" onBlur="{{ hideTip }}" aria-label="Giải thích" style="flex:none;width:18px;height:18px;display:grid;place-items:center;cursor:help;background:transparent;border:0;padding:0;color:var(--fg-3)" style-hover="color:var(--fg)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 16v-5"></path><path d="M12 8h.01"></path></svg></button></sc-if>
+                        </div>
+                        <sc-if value="{{ f.isText }}">
+                          <input value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.ph }}" style="width:100%;height:38px;padding:0 12px;font-size:14px;color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel)" style-focus="border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-veil)" />
+                        </sc-if>
+                        <sc-if value="{{ f.isSelect }}">
+                          <select value="{{ f.value }}" onChange="{{ f.onChange }}" style="width:100%;height:38px;padding:0 9px;font-size:14px;color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel)" style-hover="border-color:var(--bd-str)">
+                            <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="2"><option value="{{ o }}">{{ o }}</option></sc-for>
+                          </select>
+                        </sc-if>
+                        <sc-if value="{{ f.isArea }}">
+                          <textarea value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.ph }}" style="width:100%;min-height:80px;padding:8px 12px;font:450 12px/1.5 var(--mono);color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;resize:vertical" style-focus="border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-veil)"></textarea>
+                        </sc-if>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+
+                  <sc-if value="{{ isDtmf }}">
+                    <div style="margin-top:26px">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <span style="font:550 11px/1.25 var(--sans);letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-3)">Bản đồ phím</span>
+                        <span style="flex:1"></span>
+                        <button onMouseEnter="{{ onKeysTip }}" onMouseLeave="{{ hideTip }}" onFocus="{{ onKeysTip }}" onBlur="{{ hideTip }}" aria-label="Giải thích" style="flex:none;width:18px;height:18px;display:grid;place-items:center;cursor:help;background:transparent;border:0;padding:0;color:var(--fg-3)" style-hover="color:var(--fg)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 16v-5"></path><path d="M12 8h.01"></path></svg></button>
+                        <button onClick="{{ addKey }}" style="height:26px;padding:0 9px;cursor:pointer;font:550 11px/1 var(--sans);letter-spacing:0.04em;text-transform:uppercase;color:var(--fg-2);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px" style-hover="background:var(--bg-muted);color:var(--fg)">+ Phím</button>
+                      </div>
+                      <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
+                        <sc-for list="{{ dtmfKeys }}" as="k" hint-placeholder-count="4">
+                          <div style="display:flex;align-items:center;gap:6px">
+                            <input value="{{ k.key }}" onChange="{{ k.onKey }}" style="width:44px;height:34px;padding:0 8px;text-align:center;font:650 14px/1.15 var(--mono);color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px" style-focus="border-color:var(--acc)" />
+                            <input value="{{ k.label }}" onChange="{{ k.onLabel }}" placeholder="Nhãn nhánh" style="flex:1;min-width:0;height:34px;padding:0 10px;font-size:14px;color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px" style-focus="border-color:var(--acc)" />
+                            <button onClick="{{ k.onRemove }}" title="Xóa phím" style="flex:none;width:34px;height:34px;cursor:pointer;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;color:var(--fg-3);font:450 14px/1 var(--sans)" style-hover="background:var(--err-soft);color:var(--err);border-color:var(--err-bd)">×</button>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ selHasOuts }}">
+                    <div style="margin-top:26px">
+                      <div style="font:550 11px/1.25 var(--sans);letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-3)">Nhánh đi ra</div>
+                      <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
+                        <sc-for list="{{ selOuts }}" as="o" hint-placeholder-count="2">
+                          <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 12px;border:1px solid {{ o.rowBd }};border-radius:8px;background:{{ o.rowBg }}">
+                            <span style="flex:none;width:9px;height:9px;border-radius:50%;background:{{ o.dot }};box-shadow:{{ o.dotRing }}"></span>
+                            <span style="flex:1;min-width:0;font-size:14px;color:{{ o.labColor }};overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ o.label }}</span>
+                            <span style="flex:none;font-size:12px;color:{{ o.targetColor }};max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ o.target }}</span>
+                            <sc-if value="{{ o.hasEdge }}"><button onClick="{{ o.unlink }}" title="Bỏ nối nhánh này" style="flex:none;cursor:pointer;background:transparent;border:0;padding:0 2px;color:var(--fg-3);font:450 14px/1 var(--sans)" style-hover="color:var(--err)">×</button></sc-if>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ selNoOuts }}">
+                    <div style="margin-top:22px;padding:12px;border:1px solid var(--bd-sub);border-radius:8px;background:var(--bg-sub);font-size:12px;line-height:1.6;color:var(--fg-2)">Node kết thúc — không có nhánh đi ra. Mọi cuộc gọi tới đây đều dừng lại.</div>
+                  </sc-if>
+
+                  <div style="margin-top:26px">
+                    <div style="font:550 11px/1.25 var(--sans);letter-spacing:0.08em;text-transform:uppercase;color:var(--fg-3)">Điều này dẫn tới</div>
+                    <div style="margin-top:10px;border-top:1px solid var(--bd-sub)">
+                      <sc-for list="{{ derived }}" as="d" hint-placeholder-count="3">
+                        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--bd-sub)">
+                          <span style="font-size:14px;color:var(--fg-2)">{{ d.k }}</span>
+                          <span style="flex:none;font:650 14px/1.15 var(--mono);font-variant-numeric:tabular-nums;color:{{ d.color }}">{{ d.v }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showKeys }}">
+    <div style="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px">
+      <div onClick="{{ closeKeys }}" style="position:absolute;inset:0;background:var(--scrim)"></div>
+      <div style="position:relative;width:min(480px,92vw);background:var(--bg-raised);border:1px solid var(--bd);border-radius:14px;box-shadow:var(--sh-3);animation:ivrIn 160ms cubic-bezier(.4,0,.2,1)">
+      <div style="display:flex;align-items:center;gap:8px;padding:16px 16px 12px;border-bottom:1px solid var(--bd-sub)">
+        <div style="flex:1;font:650 16px/1.15 var(--sans);letter-spacing:-0.01em">Phím tắt</div>
+        <button onClick="{{ closeKeys }}" style="width:28px;height:28px;cursor:pointer;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:6px;color:var(--fg-2);font:450 16px/1 var(--sans)" style-hover="background:var(--bg-muted);color:var(--fg)">×</button>
+      </div>
+      <div style="padding:8px 16px 16px">
+        <sc-for list="{{ keyRows }}" as="k" hint-placeholder-count="6">
+          <div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--bd-sub)">
+            <span style="flex:1;font-size:14px;color:var(--fg)">{{ k.what }}</span>
+            <span style="flex:none;display:inline-flex;align-items:center;height:22px;padding:0 8px;border:1px solid var(--bd-str);border-radius:6px;background:var(--bg-sub);box-shadow:inset 0 -1px 0 var(--bevel-under);font:650 12px/1.15 var(--mono);color:var(--fg-2)">{{ k.key }}</span>
+          </div>
+        </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showVersionDrawer }}">
+    <div onClick="{{ closeVersions }}" style="position:fixed;inset:0;background:var(--scrim);z-index:40"></div>
+  </sc-if>
+  <sc-if value="{{ showVersionDrawer }}">
+    <div data-screen-label="Quản lý phiên bản" style="position:fixed;top:0;right:0;bottom:0;width:456px;background:var(--bg-raised);border-left:1px solid var(--bd);box-shadow:var(--sh-3);z-index:41;display:flex;flex-direction:column;animation:ivrSheet 180ms cubic-bezier(.4,0,.2,1)">
+      <div style="padding:16px;border-bottom:1px solid var(--bd-sub)">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div>
+            <h2 style="font:650 16px/1.15 var(--sans);margin:0;letter-spacing:-0.01em">Phiên bản kịch bản</h2>
+            <div style="font-size:12px;line-height:1.65;color:var(--fg-2);margin-top:3px">{{ curNumber }} · Draft → Publish, chỉ một phiên bản chạy thật.</div>
+          </div>
+          <button onClick="{{ closeVersions }}" style="margin-left:auto;flex:none;width:32px;height:32px;cursor:pointer;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);color:var(--fg-2);font:450 14px/1.6 var(--sans)" style-hover="background:var(--bg-muted)">×</button>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ versionCards }}" as="v" hint-placeholder-count="3">
+          <div style="border:1px solid {{ v.border }};border-radius:10px;padding:12px 16px;background:{{ v.bg }};box-shadow:var(--sh-1)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font:650 14px/1.15 var(--mono)">{{ v.tag }}</span>
+              <span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:999px;font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;background:{{ v.chipBg }};color:{{ v.chipColor }}">
+                <span style="width:5px;height:5px;border-radius:50%;background:{{ v.chipDot }}"></span>{{ v.statusLabel }}
+              </span>
+              <sc-if value="{{ v.isOpen }}"><span style="margin-left:auto;font:550 11px/1.25 var(--sans);letter-spacing:0.06em;text-transform:uppercase;color:var(--fg-2)">Đang mở</span></sc-if>
+            </div>
+            <div style="font:600 14px/20px var(--sans);margin-top:8px">{{ v.name }}</div>
+            <div style="font-size:12px;line-height:1.65;color:var(--fg-2);margin-top:3px;text-wrap:pretty">{{ v.note }}</div>
+            <div style="display:flex;gap:12px;margin-top:8px;font:450 12px/1.5 var(--mono);color:var(--fg-3)">
+              <span>{{ v.meta }}</span><span>{{ v.size }}</span>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+              <button onClick="{{ v.open }}" style="height:32px;padding:0 12px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under)" style-hover="background:var(--bg-muted)">Mở</button>
+              <sc-if value="{{ v.canClone }}"><button onClick="{{ v.clone }}" style="height:32px;padding:0 12px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under)" style-hover="background:var(--bg-muted)">Nhân bản thành nháp</button></sc-if>
+              <sc-if value="{{ v.canPublish }}"><button onClick="{{ v.publish }}" style="height:32px;padding:0 12px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--acc-fg);background:var(--acc);border:1px solid var(--acc);border-radius:8px" style-hover="background:var(--acc-hov)">Publish</button></sc-if>
+              <sc-if value="{{ v.canDelete }}"><button onClick="{{ v.remove }}" style="margin-left:auto;height:32px;padding:0 10px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--fg-2);background:transparent;border:1px solid transparent;border-radius:8px" style-hover="background:var(--err-soft);color:var(--err)">Xóa</button></sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showNumberModal }}">
+    <div style="position:fixed;inset:0;display:grid;place-items:center;padding:16px;background:var(--scrim);z-index:50">
+      <div style="width:min(520px,100%);background:var(--bg-raised);border:1px solid var(--bd);border-radius:10px;box-shadow:var(--sh-3);padding:16px;display:flex;flex-direction:column;gap:15px;animation:ivrIn .18s ease">
+        <div>
+          <div style="font:650 16px/1.15 var(--sans);letter-spacing:-0.01em">{{ modalTitle }}</div>
+          <div style="font-size:12px;line-height:1.65;color:var(--fg-2);margin-top:3px">{{ modalSub }}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <sc-for list="{{ numberFields }}" as="f" hint-placeholder-count="5">
+            <div style="{{ f.wrap }}">
+              <label style="display:block;font:550 14px/1.6 var(--sans);color:var(--fg);margin-bottom:6px">{{ f.label }}</label>
+              <sc-if value="{{ f.isText }}">
+                <input value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.ph }}" style="width:100%;height:36px;padding:0 10px;font-size:14px;color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under)" style-hover="border-color:var(--bd-str)" style-focus="border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-ring)" />
+              </sc-if>
+              <sc-if value="{{ f.isSelect }}">
+                <select value="{{ f.value }}" onChange="{{ f.onChange }}" style="width:100%;height:36px;padding:0 8px;font-size:14px;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);color:var(--fg)" style-hover="border-color:var(--bd-str)">
+                  <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for>
+                </select>
+              </sc-if>
+              <sc-if value="{{ f.hasHint }}"><div style="font-size:14px;color:{{ f.hintColor }};margin-top:4px">{{ f.hint }}</div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:2px">
+          <button onClick="{{ closeModal }}" style="height:36px;padding:0 16px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under)" style-hover="background:var(--bg-muted)">Hủy</button>
+          <button onClick="{{ saveNumber }}" style="height:36px;padding:0 16px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--acc-fg);background:var(--acc);border:1px solid var(--acc);border-radius:8px" style-hover="background:var(--acc-hov)">{{ modalCta }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showPublishModal }}">
+    <div style="position:fixed;inset:0;display:grid;place-items:center;padding:16px;background:var(--scrim);z-index:50">
+      <div style="width:min(560px,100%);background:var(--bg-raised);border:1px solid var(--bd);border-radius:10px;box-shadow:var(--sh-3);padding:16px;display:flex;flex-direction:column;gap:16px;animation:ivrIn .18s ease">
+        <div>
+          <div style="font:650 16px/1.15 var(--sans);letter-spacing:-0.01em">{{ publishTitle }}</div>
+          <div style="font-size:12px;line-height:1.65;color:var(--fg-2);margin-top:4px;text-wrap:pretty">{{ publishSub }}</div>
+        </div>
+        <div style="border:1px solid var(--bd);border-radius:8px;max-height:236px;overflow:auto">
+          <sc-for list="{{ checks }}" as="c" hint-placeholder-count="3">
+            <div style="display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid var(--bd-sub)">
+              <span style="flex:none;display:inline-flex;align-items:center;height:19px;padding:0 8px;border-radius:6px;font:550 14px/1.6 var(--sans);letter-spacing:0.04em;text-transform:uppercase;background:{{ c.bg }};color:{{ c.color }}">{{ c.tag }}</span>
+              <span style="font-size:14px;color:var(--fg)">{{ c.text }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div>
+          <label style="display:block;font:550 14px/1.6 var(--sans);color:var(--fg);margin-bottom:6px">Ghi chú phát hành</label>
+          <input value="{{ publishNote }}" onChange="{{ onPublishNote }}" placeholder="VD: Thêm nhánh tra cứu công nợ qua API" style="width:100%;height:36px;padding:0 10px;font-size:14px;background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);color:var(--fg)" style-focus="border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-ring)" />
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-size:12px;line-height:1.65;color:var(--fg-2)">{{ publishHint }}</div>
+          <button onClick="{{ closePublish }}" style="margin-left:auto;height:36px;padding:0 16px;cursor:pointer;font:550 14px/1.6 var(--sans);color:var(--fg);background:var(--bg-raised);border:1px solid var(--bd-str);border-radius:8px;box-shadow:inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under)" style-hover="background:var(--bg-muted)">Hủy</button>
+          <button onClick="{{ confirmPublish }}" style="height:36px;padding:0 16px;cursor:pointer;font:550 14px/1.6 var(--sans);color:#fafafa;background:{{ publishBtnBg }};border:1px solid {{ publishBtnBg }};border-radius:8px" style-hover="filter:brightness(1.15)">{{ publishCta }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ menuOn }}">
+    <div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:70"></div>
+  </sc-if>
+  <sc-if value="{{ menuOn }}">
+    <div style="position:fixed;left:{{ menuX }};top:{{ menuY }};width:268px;z-index:71;background:var(--bg-raised);border:1px solid var(--bd);border-radius:10px;box-shadow:var(--sh-3);overflow:hidden;animation:ivrIn 120ms var(--ease)">
+      <div style="display:flex;align-items:center;gap:8px;padding:0 12px;height:42px;border-bottom:1px solid var(--bd-sub)">
+        <span style="flex:none;display:grid;place-items:center;color:var(--fg-3)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></span>
+        <input value="{{ menuQuery }}" onChange="{{ onMenuQuery }}" placeholder="{{ menuLabel }}" style="flex:1;min-width:0;height:40px;padding:0;font-size:14px;color:var(--fg);background:transparent;border:0" />
+      </div>
+      <div style="max-height:248px;overflow-y:auto;padding:4px">
+        <sc-for list="{{ menuItems }}" as="m" hint-placeholder-count="4">
+          <button onClick="{{ m.toggle }}" style="width:100%;display:flex;align-items:center;gap:10px;height:38px;padding:0 8px;cursor:pointer;text-align:left;background:{{ m.bg }};border:0;border-radius:6px;font:550 14px/1.6 var(--sans);color:{{ m.color }}" style-hover="background:var(--bg-muted)">
+            <span style="flex:none;width:16px;height:16px;display:grid;place-items:center;border:1.5px solid {{ m.boxBd }};border-radius:4px;background:{{ m.boxBg }};color:var(--acc-fg)">
+              <sc-if value="{{ m.on }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4 10-10"></path></svg></sc-if>
+            </span>
+            <span style="flex:none;width:8px;height:8px;border-radius:50%;background:{{ m.dot }};box-shadow:{{ m.dotRing }}"></span>
+            <span style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ m.label }}</span>
+            <span style="flex:none;font:450 12px/1.5 var(--mono);font-variant-numeric:tabular-nums;color:var(--fg-3)">{{ m.count }}</span>
+          </button>
+        </sc-for>
+        <sc-if value="{{ menuEmpty }}">
+          <div style="padding:20px 12px;text-align:center;font-size:12px;line-height:1.65;color:var(--fg-3)">Không có mục nào khớp</div>
+        </sc-if>
+      </div>
+      <sc-if value="{{ menuHasSel }}">
+        <div style="border-top:1px solid var(--bd-sub);padding:6px">
+          <button onClick="{{ clearMenu }}" style="width:100%;height:32px;cursor:pointer;font:550 12px/1 var(--sans);letter-spacing:0.04em;text-transform:uppercase;color:var(--fg-2);background:transparent;border:0;border-radius:6px" style-hover="background:var(--bg-muted);color:var(--fg)">Bỏ chọn tất cả</button>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ tipOn }}">
+<div class="ivr-tipbox {{ tipCls }}" style="position:fixed;left:{{ tipX }};top:{{ tipY }};transform:{{ tipTransform }};z-index:80;pointer-events:none;max-width:{{ tipMaxW }};white-space:{{ tipWrap }};padding:7px 10px;border-radius:6px;background:var(--fg);color:var(--bg);box-shadow:var(--sh-2);font:450 12px/1.55 var(--sans);text-wrap:pretty">{{ tipText }}</div>
+  </sc-if>
+
+  <sc-if value="{{ toast }}">
+    <div style="position:fixed;left:0;right:0;bottom:24px;z-index:60;display:flex;justify-content:center;pointer-events:none">
+      <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 16px;background:var(--fg);color:var(--bg);border-radius:8px;box-shadow:var(--sh-3);font-size:14px;animation:ivrIn 180ms cubic-bezier(.4,0,.2,1);white-space:nowrap">{{ toast }}</div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;nodeColorMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;hue&quot;,&quot;accent&quot;],&quot;default&quot;:&quot;hue&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Node&quot;},&quot;edgeStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;default&quot;,&quot;smoothstep&quot;,&quot;step&quot;,&quot;straight&quot;],&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Canvas&quot;},&quot;snapGrid&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:32,&quot;step&quot;:4,&quot;default&quot;:16,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Canvas&quot;},&quot;showMinimap&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Canvas&quot;}}">
+class Component extends DCLogic {
+  C = {};
+  FALLBACK = /không bấm|sai phím|lỗi|chặn|hết thời gian chờ|không trả lời|bỏ qua/i;
+
+  NT = {
+    start:  { code:'ST',  label:'Bắt đầu',            col:'green',  outs:['Cuộc gọi vào'] },
+    black:  { code:'BL',  label:'Kiểm tra danh sách', col:'amber',  outs:['Cho phép','Chặn'] },
+    time:   { code:'TM',  label:'Điều kiện giờ',      col:'amber',  outs:['Trong giờ','Ngoài giờ'] },
+    play:   { code:'PL',  label:'Phát ghi âm',        col:'blue',   outs:['Phát xong'] },
+    dtmf:   { code:'KB',  label:'Bấm phím (DTMF)',    col:'blue',   outs:null },
+    ext:    { code:'EX',  label:'Chuyển extension',   col:'violet', outs:['Kết nối','Không trả lời'] },
+    queue:  { code:'QU',  label:'Chuyển hàng đợi',    col:'violet', outs:['Kết nối','Hết thời gian chờ'] },
+    branch: { code:'IF',  label:'Rẽ nhánh theo biến', col:'amber',  outs:['Đúng','Sai'] },
+    api:    { code:'API', label:'Gọi API / Webhook',  col:'cyan',   outs:['Thành công','Lỗi'] },
+    setvar: { code:'SET', label:'Gán biến',           col:'cyan',   outs:['Tiếp tục'] },
+    survey: { code:'SV',  label:'Khảo sát sau gọi',   col:'blue',   outs:['Hoàn tất','Bỏ qua'] },
+    goto:   { code:'GO',  label:'Nhảy tới node',      col:'slate',  outs:[] },
+    hangup: { code:'HG',  label:'Kết thúc cuộc gọi',  col:'rose',   outs:[] },
+  };
+
+  GROUPS = [
+    { name:'Luồng',           types:['start','hangup','goto'] },
+    { name:'Âm thanh & nhập', types:['play','dtmf','survey'] },
+    { name:'Điều kiện',       types:['time','branch','black'] },
+    { name:'Định tuyến',      types:['ext','queue'] },
+    { name:'Dữ liệu',         types:['api','setvar'] },
+  ];
+
+  RECORDINGS = ['greeting_vn.wav','menu_main_vn.wav','after_hours_vn.wav','holiday_vn.wav','debt_notice_vn.wav','survey_csat_vn.wav','invalid_key_vn.wav','blacklist_reject_vn.wav'];
+  QUEUES = ['Q_CSKH_L1','Q_CSKH_VIP','Q_KYTHUAT','Q_THUHOI_NO'];
+  EXTS = ['1001 — Kỹ thuật','1002 — Kinh doanh','1100 — Trực tổng đài','2001 — Giám sát'];
+  PROVIDERS = ['Tất cả nhà mạng','Viettel','VNPT','Mobifone','FPT Telecom'];
+
+  state = {
+    route:'list', search:'',
+    // Facets are multi-select sets, not one value each: "Viettel and VNPT" is a
+    // question an operator asks, and a single-value select cannot answer it.
+    statusSel:[], providerSel:[], filterMenu:null, menuQuery:'', page:1, perPage:10,
+    ...this.seed(), curId:null, selectedVersionId:null, edgeType:null, theme:'light', laid:{}, fitStamp:0, panelPx:360, resizing:false, showKeys:false, vw:(typeof window !== 'undefined' ? window.innerWidth : 1440),
+    selNode:null, selEdge:null, paletteQuery:'',
+    undo:[], redo:[],
+    panelOpen:false, palOpen:false, tip:null, marquee:false, showVersions:false, modal:null, modalDraft:{}, publish:null, publishNote:'',
+    toast:'',
+  };
+
+  uidn = 100;
+
+  seed() {
+    const numbers = [
+      { id:'p1', number:'1900 1080', name:'Tổng đài CSKH toàn quốc', kind:'Hotline 1900 · thu phí', provider:'Viettel', status:'Hoạt động', calls:'4.812', updated:'20/08/2026 09:14' },
+      { id:'p2', number:'1800 6868', name:'Hỗ trợ bảo hành', kind:'Freephone 1800', provider:'VNPT', status:'Hoạt động', calls:'1.207', updated:'19/08/2026 17:02' },
+      { id:'p3', number:'1900 2345', name:'Thu hồi nợ & nhắc phí', kind:'Hotline 1900', provider:'Mobifone', status:'Hoạt động', calls:'933', updated:'18/08/2026 11:40' },
+      { id:'p4', number:'028 7300 4455', name:'Chi nhánh Hồ Chí Minh', kind:'Số cố định', provider:'FPT Telecom', status:'Tạm dừng', calls:'0', updated:'12/08/2026 08:20' },
+      { id:'p5', number:'024 7300 1199', name:'Chi nhánh Hà Nội', kind:'Số cố định', provider:'FPT Telecom', status:'Hoạt động', calls:'318', updated:'20/08/2026 07:55' },
+      { id:'p6', number:'1900 9696', name:'Đặt lịch kỹ thuật', kind:'Hotline 1900', provider:'Viettel', status:'Nháp', calls:'0', updated:'17/08/2026 15:31' },
+      { id:'p7', number:'1800 1221', name:'Khiếu nại & phản hồi', kind:'Freephone 1800', provider:'VNPT', status:'Hoạt động', calls:'542', updated:'20/08/2026 08:47' },
+    ];
+    const flows = {};
+    flows.p1 = { versions:[
+      { id:'p1v4', no:4, name:'Thêm nhánh tra cứu công nợ', status:'draft',     author:'Ng. Minh Anh', date:'20/08/2026 09:14', note:'Bổ sung node API tra cứu công nợ và rẽ nhánh theo biến debt.amount.', graph:this.mainGraph() },
+      { id:'p1v3', no:3, name:'Chuẩn hóa menu 4 phím',      status:'published', author:'Trần Quốc Huy', date:'11/08/2026 14:02', note:'Gộp phím 4 và 5, rút ngắn ghi âm chào mừng còn 12 giây.', graph:this.mainGraph(true) },
+      { id:'p1v2', no:2, name:'Thêm kiểm tra blacklist',    status:'archived',  author:'Trần Quốc Huy', date:'02/07/2026 10:25', note:'Chặn sớm các số spam trước khi vào menu.', graph:this.simpleGraph('CSKH') },
+      { id:'p1v1', no:1, name:'Bản khởi tạo',               status:'archived',  author:'Hệ thống',      date:'15/05/2026 09:00', note:'Kịch bản đầu tiên do đội triển khai dựng.', graph:this.simpleGraph('CSKH') },
+    ] };
+    ['p2','p3','p4','p5','p6','p7'].forEach((id, i) => {
+      const names = { p2:'Bảo hành', p3:'Thu hồi nợ', p4:'HCM', p5:'Hà Nội', p6:'Đặt lịch', p7:'Khiếu nại' };
+      const vs = [{ id:id + 'v1', no:1, name:'Bản khởi tạo', status:id === 'p6' ? 'draft' : 'published', author:'Hệ thống', date:'0' + (2 + i) + '/08/2026 10:00', note:'Kịch bản 3 cấp: chào — menu — định tuyến.', graph:this.simpleGraph(names[id]) }];
+      if (id === 'p2') vs.unshift({ id:'p2v2', no:2, name:'Thêm khảo sát CSAT', status:'draft', author:'Lê Bảo Trân', date:'19/08/2026 17:02', note:'Gắn node khảo sát sau khi kết thúc với agent.', graph:this.simpleGraph('Bảo hành') });
+      flows[id] = { versions:vs };
+    });
+    return { numbers, flows };
+  }
+
+  componentDidMount() {
+    this.syncTheme();
+    this._rs = () => { const w = window.innerWidth; if (Math.abs(w - this.state.vw) > 8) this.setState({ vw:w }); };
+    window.addEventListener('resize', this._rs);
+    this._kd = e => this.onKey(e);
+    document.addEventListener('keydown', this._kd);
+    this.pushFlow();
+  }
+  componentDidUpdate() { this.pushFlow(); this.syncTheme(); }
+  syncTheme() {
+    const t = this.state.theme === 'dark' ? 'dark' : 'light';
+    if (document.documentElement.dataset.theme !== t) document.documentElement.dataset.theme = t;
+  }
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this._kd);
+    window.removeEventListener('resize', this._rs);
+    clearTimeout(this._toast);
+  }
+
+  N(id, type, x, y, name, cfg) { return { id, type, x, y, name, cfg: cfg || {} }; }
+
+  mainGraph(short) {
+    const nodes = [
+      this.N('n1','start',0,300,'Cuộc gọi vào 1900 1080',{ rec:'Có', timeout:'180' }),
+      this.N('n2','black',300,300,'Chặn số spam',{ list:'blacklist_spam', act:'Chuyển sang thông báo từ chối' }),
+      this.N('n3','hangup',300,560,'Từ chối cuộc gọi',{ reason:'Số bị chặn', pre:'blacklist_reject_vn.wav' }),
+      this.N('n4','time',600,270,'Khung giờ làm việc',{ tz:'Asia/Ho_Chi_Minh', rules:[{ h1:'08', n1:'00', h2:'17', n2:'30', wd1:'T2', wd2:'T6', md1:'—', md2:'—', mo1:'—', mo2:'—', y1:'—', y2:'—' }] }),
+      this.N('n5','play',900,80,'Chào mừng',{ rec:'greeting_vn.wav', interrupt:'Cho phép', loop:'1' }),
+      this.N('n6','play',900,420,'Thông báo ngoài giờ',{ rec:'after_hours_vn.wav', interrupt:'Không', loop:'1' }),
+      this.N('n8','dtmf',1200,40,'Menu chính',{ rec:'menu_main_vn.wav', digits:'1', wait:'6', retry:'2',
+        keys:[{ key:'1', label:'CSKH' },{ key:'2', label:'Tra cứu công nợ' },{ key:'3', label:'Kỹ thuật' },{ key:'0', label:'Nhắc lại menu' }] }),
+      this.N('n9','queue',1520,0,'Hàng đợi CSKH',{ queue:'Q_CSKH_L1', maxwait:'120', pos:'Có', moh:'moh_default' }),
+      this.N('n10','api',1520,190,'Tra cứu công nợ',{ method:'POST', url:'https://api.crm.local/v2/debt/lookup', headers:'Authorization: Bearer ${token}', body:'{ "msisdn": "${caller}" }', save:'debt', timeout:'2500' }),
+      this.N('n11','ext',1520,400,'Nhóm kỹ thuật',{ ext:'1001 — Kỹ thuật', ring:'25', moh:'moh_default' }),
+      this.N('n12','goto',1520,590,'Về menu chính',{ target:'n8 — Menu chính' }),
+      this.N('n13','branch',1840,190,'Có dư nợ?',{ v:'debt.amount', op:'>', val:'0' }),
+      this.N('n14','play',2140,130,'Thông báo dư nợ',{ rec:'debt_notice_vn.wav', interrupt:'Cho phép', loop:'2' }),
+      this.N('n15','setvar',2140,330,'Đánh dấu không nợ',{ name:'segment', value:'clean' }),
+      this.N('n16','survey',1200,430,'Khảo sát CSAT',{ rec:'survey_csat_vn.wav', scale:'1 - 5', save:'csat' }),
+      this.N('n17','hangup',2460,230,'Kết thúc bình thường',{ reason:'Hoàn tất kịch bản', pre:'Không' }),
+      this.N('n18','hangup',1200,660,'Kết thúc sau thông báo',{ reason:'Hoàn tất kịch bản', pre:'Không' }),
+    ];
+    const E = (from, port, to) => ({ id:'e' + from + '_' + port, from, port, to });
+    let edges = [
+      E('n1',0,'n2'), E('n2',0,'n4'), E('n2',1,'n3'),
+      E('n4',0,'n5'), E('n4',1,'n6'),
+      E('n5',0,'n8'), E('n6',0,'n16'),
+      E('n8',0,'n9'), E('n8',1,'n10'), E('n8',2,'n11'), E('n8',3,'n12'), E('n8',4,'n18'), E('n8',5,'n12'),
+      E('n9',0,'n17'), E('n9',1,'n16'),
+      E('n10',0,'n13'), E('n10',1,'n18'),
+      E('n11',0,'n17'), E('n11',1,'n9'),
+      E('n13',0,'n14'), E('n13',1,'n15'),
+      E('n14',0,'n17'), E('n15',0,'n17'),
+      E('n16',0,'n17'), E('n16',1,'n17'),
+    ];
+    if (short) {
+      const drop = ['n10','n13','n14','n15'];
+      const kept = nodes.filter(n => !drop.includes(n.id));
+      kept.find(n => n.id === 'n8').cfg.keys = [{ key:'1', label:'CSKH' },{ key:'2', label:'Kỹ thuật' },{ key:'0', label:'Nhắc lại menu' }];
+      edges = edges.filter(e => !drop.includes(e.from) && !drop.includes(e.to));
+      edges = edges.filter(e => !(e.from === 'n8' && e.port >= 2));
+      edges.push(E('n8',2,'n12'), E('n8',3,'n18'), E('n8',4,'n12'));
+      return { nodes:kept, edges };
+    }
+    return { nodes, edges };
+  }
+
+  simpleGraph(label) {
+    return {
+      nodes:[
+        this.N('n1','start',0,180,'Cuộc gọi vào',{ rec:'Có', timeout:'120' }),
+        this.N('n2','play',300,180,'Chào mừng ' + label,{ rec:'greeting_vn.wav', interrupt:'Cho phép', loop:'1' }),
+        this.N('n3','dtmf',600,150,'Menu ' + label,{ rec:'menu_main_vn.wav', digits:'1', wait:'6', retry:'2',
+          keys:[{ key:'1', label:'Gặp nhân viên' },{ key:'2', label:'Nghe lại' }] }),
+        this.N('n4','queue',920,70,'Hàng đợi ' + label,{ queue:'Q_CSKH_L1', maxwait:'90', pos:'Không', moh:'moh_default' }),
+        this.N('n5','hangup',920,350,'Kết thúc',{ reason:'Hoàn tất kịch bản', pre:'Không' }),
+      ],
+      edges:[
+        { id:'ea', from:'n1', port:0, to:'n2' },
+        { id:'eb', from:'n2', port:0, to:'n3' },
+        { id:'ec', from:'n3', port:0, to:'n4' },
+        { id:'ed', from:'n3', port:2, to:'n5' },
+        { id:'ee', from:'n4', port:0, to:'n5' },
+      ]
+    };
+  }
+
+  // ── model ─────────────────────────────────────────────────────────────
+  flow() { return this.state.flows[this.state.curId]; }
+  version() { const f = this.flow(); if (!f) return null; return f.versions.find(v => v.id === this.state.selectedVersionId) || f.versions[0]; }
+  graph() { const v = this.version(); return v ? v.graph : { nodes:[], edges:[] }; }
+  editable() { const v = this.version(); return !!v && v.status === 'draft'; }
+  byId(id) { return this.graph().nodes.find(n => n.id === id); }
+  ver(id) { const f = this.flow(); return f && f.versions.find(v => v.id === id); }
+  // Kind identity resolves through CSS custom properties, exactly as the source
+  // system does with [data-kind] → --k-fill/--k-line/--k-stroke/--k-ink: one hue
+  // per kind, L and C fixed per role, so all 13 carry equal visual weight. Both
+  // themes define the full set, so nothing here needs to know which is active.
+  col(type) {
+    if ((this.props.nodeColorMode || 'hue') === 'accent') {
+      return { fill:'var(--acc-soft)', stroke:'var(--acc)', ink:'var(--acc-ink)',
+               c50:'var(--acc-soft)', c200:'var(--acc)', c500:'var(--acc)', c700:'var(--acc-ink)' };
+    }
+    const v = r => 'var(--n-' + type + '-' + r + ')';
+    return { fill:v('s'), stroke:v('b'), ink:v('t'),
+             c50:v('s'), c200:v('b'), c500:v('b'), c700:v('t') };
+  }
+
+  // Edges need a concrete colour: their stroke and arrowhead end up on SVG
+  // marker elements, where a var() reference is not reliably resolved. The
+  // edges array re-syncs on every visual change, so recomputing per theme here
+  // is safe — unlike the node array, which must stay structurally stable.
+  HUE = { start:152, hangup:25, play:250, dtmf:262, survey:346, time:70, branch:50,
+          black:38, ext:295, queue:310, api:196, setvar:206, goto:118 };
+  edgeColor(type) {
+    if ((this.props.nodeColorMode || 'hue') === 'accent') return this.theme() === 'dark' ? '#6f9bf0' : '#325cbd';
+    const h = this.HUE[type] ?? 264, dk = this.theme() === 'dark';
+    return 'oklch(' + (dk ? 0.72 : 0.6) + ' ' + (dk ? 0.145 : 0.125) + ' ' + h + ')';
+  }
+  theme() { return this.state.theme === 'dark' ? 'dark' : 'light'; }
+  pfMinimap() {
+    const s = this.state;
+    const tucked = (s.vw > 0 && s.vw < 1240 && s.panelOpen) || s.vw < 900;
+    return (this.props.showMinimap ?? true) && !tucked;
+  }
+  outsOf(n) {
+    if (!n) return [];
+    if (n.type === 'dtmf') {
+      return (n.cfg.keys || []).map(k => 'Phím ' + k.key + (k.label ? ' — ' + k.label : '')).concat(['Không bấm phím','Sai phím']);
+    }
+    return this.NT[n.type].outs || [];
+  }
+  // Node height must be EXACT, not an estimate: the value declared here is
+  // handed to React Flow as initialHeight, and any sub-pixel disagreement with
+  // the card's intrinsic height makes every ResizeObserver delivery report a
+  // new size, until the browser aborts the loop with undelivered notifications
+  // and no node is ever measured — no handleBounds, no edges. So the card's CSS
+  // uses integer line-heights only and this sums the same boxes:
+  //   header 30 + title 24 + summary 29 (+ outs 10 + 24 per branch) + border 3
+  // Must match the card's CSS exactly — the edge layer anchors to these numbers.
+  // bar 6 + header 54 + summary 28 + branches (34 each, 5 gap, 12 pad) + border 3,
+  // plus a 33px footer when the node carries a warning or a config error.
+  nodeH(n) {
+    const outs = this.outsOf(n);
+    const k = outs.length;
+    let h = k ? 91 + 39 * k + 7 : 91;
+    const g = this.graph();
+    const unlinked = outs.some((l, i) => !g.edges.some(e => e.from === n.id && e.port === i));
+    if (this.nodeIssue(n) || unlinked) h += 30.5;
+    return h;
+  }
+  // The one blocking gap a node can show on its own face.
+  nodeIssue(n) {
+    if (n.type === 'goto' && !n.cfg.target) return 'chưa chọn node đích';
+    if (n.type === 'api' && !n.cfg.url) return 'thiếu endpoint';
+    return null;
+  }
+
+  say(msg) { clearTimeout(this._toast); this.setState({ toast:msg }); this._toast = setTimeout(() => this.setState({ toast:'' }), 2600); }
+
+  mutate(fn, label) {
+    if (!this.editable()) { this.say('Phiên bản này chỉ đọc — nhân bản thành nháp để sửa.'); return; }
+    const v = this.version();
+    const snap = JSON.stringify(v.graph);
+    fn(v.graph);
+    this.setState({ flows:{ ...this.state.flows }, undo:this.state.undo.concat([{ vid:v.id, snap, label }]).slice(-60), redo:[] });
+  }
+  undoAct = () => {
+    const st = this.state.undo; if (!st.length) return;
+    const last = st[st.length - 1]; const v = this.ver(last.vid); if (!v) return;
+    const cur = JSON.stringify(v.graph);
+    v.graph = JSON.parse(last.snap);
+    this.setState({ undo:st.slice(0, -1), redo:this.state.redo.concat([{ vid:last.vid, snap:cur, label:last.label }]), flows:{ ...this.state.flows }, selNode:null, selEdge:null });
+    this.say('Đã hoàn tác: ' + last.label);
+  };
+  redoAct = () => {
+    const st = this.state.redo; if (!st.length) return;
+    const last = st[st.length - 1]; const v = this.ver(last.vid); if (!v) return;
+    const cur = JSON.stringify(v.graph);
+    v.graph = JSON.parse(last.snap);
+    this.setState({ redo:st.slice(0, -1), undo:this.state.undo.concat([{ vid:last.vid, snap:cur, label:last.label }]), flows:{ ...this.state.flows }, selNode:null, selEdge:null });
+  };
+
+  onKey = e => {
+    const t = e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+    const k = e.key.toLowerCase();
+    if ((e.metaKey || e.ctrlKey) && k === 'z') { e.preventDefault(); e.shiftKey ? this.redoAct() : this.undoAct(); return; }
+    if (e.key === 'Escape') { this.setState({ showVersions:false, modal:null, publish:null, showKeys:false }); return; }
+    if (e.key === '?') { e.preventDefault(); this.setState({ showKeys:!this.state.showKeys }); return; }
+    if (this.state.route !== 'editor' || !this.state.curId) return;
+    // Edges are drawn by this app, not by React Flow (its edge array is empty),
+    // so its deleteKeyCode never sees them — the selected edge is host state and
+    // Delete has to act on it here.
+    if ((e.key === 'Delete' || e.key === 'Backspace') && this.state.selEdge) {
+      e.preventDefault();
+      this.delEdge(this.state.selEdge);
+      this.setState({ panelOpen:false });
+      return;
+    }
+    if (k === 'l') { e.preventDefault(); if (this.editable()) this._flowEl && this._flowEl.autoLayout(); return; }
+    if (k === 'f') { e.preventDefault(); this._flowEl && this._flowEl.fitView(); return; }
+    if (k === 'v') { e.preventDefault(); this.setState({ marquee:!this.state.marquee }); }
+  };
+
+  // ── graph ops ─────────────────────────────────────────────────────────
+  link(from, port, to) {
+    this.mutate(g => {
+      g.edges = g.edges.filter(x => !(x.from === from && x.port === port));
+      g.edges.push({ id:'e' + Date.now() + '_' + port, from, port, to });
+    }, 'nối nhánh');
+  }
+  delEdge(id) { this.mutate(g => { g.edges = g.edges.filter(e => e.id !== id); }, 'xóa đường nối'); this.setState({ selEdge:null }); }
+  delNode = () => {
+    const id = this.state.selNode; if (!id) return;
+    this.mutate(g => { g.nodes = g.nodes.filter(n => n.id !== id); g.edges = g.edges.filter(e => e.from !== id && e.to !== id); }, 'xóa node');
+    this.setState({ panelOpen:false });
+    this.setState({ selNode:null });
+  };
+  addNode(type, x, y) {
+    if (!this.editable()) { this.say('Phiên bản này chỉ đọc — nhân bản thành nháp để sửa.'); return; }
+    const id = 'n' + (++this.uidn);
+    const defs = {
+      start:{ rec:'Có', timeout:'120' },
+      black:{ list:'blacklist_spam', act:'Chuyển sang thông báo từ chối' },
+      time:{ tz:'Asia/Ho_Chi_Minh', rules:[{ h1:'08', n1:'00', h2:'17', n2:'30', wd1:'T2', wd2:'T6', md1:'—', md2:'—', mo1:'—', mo2:'—', y1:'—', y2:'—' }] },
+      play:{ rec:'greeting_vn.wav', interrupt:'Cho phép', loop:'1' },
+      dtmf:{ rec:'menu_main_vn.wav', digits:'1', wait:'6', retry:'2', keys:[{ key:'1', label:'Nhánh 1' },{ key:'2', label:'Nhánh 2' }] },
+      ext:{ ext:'1100 — Trực tổng đài', ring:'25', moh:'moh_default' },
+      queue:{ queue:'Q_CSKH_L1', maxwait:'90', pos:'Không', moh:'moh_default' },
+      branch:{ v:'session.var', op:'=', val:'' },
+      api:{ method:'GET', url:'https://api.example.local/endpoint', headers:'', body:'', save:'result', timeout:'2000' },
+      setvar:{ name:'var_name', value:'' },
+      survey:{ rec:'survey_csat_vn.wav', scale:'1 - 5', save:'csat' },
+      goto:{ target:'' },
+      hangup:{ reason:'Hoàn tất kịch bản', pre:'Không' },
+    };
+    this.mutate(g => { g.nodes.push({ id, type, x:Math.round(x), y:Math.round(y), name:this.NT[type].label, cfg:JSON.parse(JSON.stringify(defs[type] || {})) }); }, 'thêm node ' + this.NT[type].label);
+    this.setState({ selNode:id, selEdge:null, panelOpen:true });
+  }
+
+  // ── <ivr-flow> bridge ─────────────────────────────────────────────────
+  onFlowRef = el => {
+    if (this._flowEl === el) return;
+    this._flowEl = el;
+    if (!el || el._ivrBound) return;
+    el._ivrBound = true;
+    el.addEventListener('ivr:select', e => {
+      const d = e.detail, s = this.state;
+      if (d.kind === 'node') this.setState({ selNode:d.id, selEdge:null, panelOpen:true });
+      else if (d.kind === 'edge') this.setState({ selEdge:d.id, selNode:null, panelOpen:true });
+      else this.setState({ selNode:null, selEdge:null, panelOpen:false });
+    });
+    el.addEventListener('ivr:connect', e => {
+      const d = e.detail;
+      this.link(d.source, parseInt(d.sourceHandle || '0', 10), d.target);
+    });
+    el.addEventListener('ivr:move', e => {
+      const list = e.detail;
+      this.mutate(g => { list.forEach(p => { const n = g.nodes.find(x => x.id === p.id); if (n) { n.x = p.x; n.y = p.y; } }); }, 'di chuyển node');
+    });
+    el.addEventListener('ivr:delete', e => {
+      const d = e.detail;
+      if (!d.nodes.length && !d.edges.length) return;
+      this.mutate(g => {
+        g.nodes = g.nodes.filter(n => !d.nodes.includes(n.id));
+        g.edges = g.edges.filter(x => !d.edges.includes(x.id) && !d.nodes.includes(x.from) && !d.nodes.includes(x.to));
+      }, d.nodes.length ? 'xóa node' : 'xóa đường nối');
+      this.setState({ selNode:null, selEdge:null,
+        panelOpen:d.nodes.length ? false : this.state.panelOpen });
+    });
+    el.addEventListener('ivr:drop', e => this.addNode(e.detail.type, e.detail.x, e.detail.y));
+    el.addEventListener('ivr:layout', e => {
+      const d = e.detail, list = Array.isArray(d) ? d : d.list;
+      if (d && d.silent) {
+        const v = this.version(); if (!v) return;
+        list.forEach(p => { const n = v.graph.nodes.find(x => x.id === p.id); if (n) { n.x = p.x; n.y = p.y; } });
+        this.setState({ flows:{ ...this.state.flows }, laid:{ ...this.state.laid, [v.id]:true },
+                        fitStamp:this.state.fitStamp + 1 });
+        return;
+      }
+      this.mutate(g => { list.forEach(p => { const n = g.nodes.find(x => x.id === p.id); if (n) { n.x = p.x; n.y = p.y; } }); }, 'tự sắp xếp');
+      this.setState({ fitStamp:this.state.fitStamp + 1 });
+    });
+  };
+
+  pushFlow() {
+    const el = this._flowEl;
+    if (!el || this.state.route !== 'editor' || !this.state.curId) return;
+    const s = this.state, g = this.graph(), ro = !this.editable();
+    const stamp = this.version().id + '|' + JSON.stringify(g.nodes.map(n => [n.id, n.x, n.y, n.name, this.outsOf(n).length, this.desc(n)])) + '|' + JSON.stringify(g.edges.map(e => [e.id, e.from, e.port, e.to]));
+    const et = s.edgeType || this.props.edgeStyle || 'default';
+    const visual = [s.selNode, s.selEdge, ro, et, s.theme, s.marquee, this.props.nodeColorMode, this.props.snapGrid, this.pfMinimap(), s.panelOpen, s.panelPx, s.vw].join('|');
+    el.payload = {
+      stamp, visualStamp: visual, readOnly: ro,
+      edgeType: et, snap: this.props.snapGrid ?? 16, showMinimap: this.pfMinimap(), theme: s.theme,
+      autoLayout: !s.laid[this.version().id], fitStamp: s.fitStamp, marquee: s.marquee,
+      // How much of the canvas's right edge the inspector covers. It overlays
+      // instead of pushing on narrow viewports, so the canvas must be told —
+      // otherwise every fit centres the graph behind the panel.
+      insetRight: (s.vw > 0 && s.vw < 1180 && s.panelOpen) ? s.panelPx + 24 : 0,
+      nodes: g.nodes.map(n => ({
+        id:n.id, type:'ivr', position:{ x:n.x, y:n.y }, selected:s.selNode === n.id, draggable:!ro,
+        data:{
+          code:this.NT[n.type].code, typeLabel:this.NT[n.type].label, name:n.name, summary:this.desc(n),
+          // The KIND, not a resolved colour: the card reads --n-<kind>-* in CSS,
+          // so a theme switch re-resolves every node with no data change.
+          kind:n.type, readOnly:ro, badConfig:this.nodeIssue(n),
+          h:this.nodeH(n), hasIn:g.edges.some(e => e.to === n.id),
+          outs:this.outsOf(n).map((label, i) => ({
+            label, connected:g.edges.some(e => e.from === n.id && e.port === i), fallback:this.FALLBACK.test(label),
+          })),
+        },
+      })),
+      edges: g.edges.map(e => {
+        const on = false;
+        const src = this.byId(e.from);
+        const fb = src && this.FALLBACK.test(this.outsOf(src)[e.port] || '');
+        const dk = this.theme() === 'dark';
+        const base = fb ? (dk ? '#e2565c' : '#d73337') : (src ? this.edgeColor(src.type) : (dk ? '#4a4855' : '#cfc8bf'));
+        const col = on ? (dk ? '#6f9bf0' : '#325cbd') : s.selEdge === e.id ? (dk ? '#6f9bf0' : '#325cbd') : base;
+        return {
+          id:e.id, source:e.from, sourceHandle:String(e.port), target:e.to, type:et,
+          selected:s.selEdge === e.id, animated:on,
+          style:{ stroke:col, strokeWidth:on ? 2.4 : 1.8, strokeDasharray:fb && !on ? '5 4' : undefined },
+          markerEnd:{ type:'arrowclosed', width:14, height:14, color:col },
+        };
+      }),
+    };
+  }
+
+  // ── versions ──────────────────────────────────────────────────────────
+  cloneToDraft = () => {
+    const f = this.flow(); const src = this.version();
+    if (f.versions.some(v => v.status === 'draft')) { this.say('Đã có một bản nháp — mở bản nháp đó để sửa.'); return; }
+    const no = Math.max.apply(null, f.versions.map(v => v.no)) + 1;
+    const nv = { id:this.state.curId + 'v' + no + '_' + Date.now(), no, name:'Nháp từ v' + src.no, status:'draft', author:'Bạn', date:'20/08/2026 09:40', note:'Nhân bản từ phiên bản v' + src.no + ' để chỉnh sửa.', graph:JSON.parse(JSON.stringify(src.graph)) };
+    f.versions.unshift(nv);
+    this.setState({ flows:{ ...this.state.flows }, selectedVersionId:nv.id, selNode:null, selEdge:null });
+    this.say('Đã tạo bản nháp v' + no);
+  };
+  doPublish = () => {
+    const f = this.flow(); const v = this.version();
+    if (v.status !== 'draft') { this.say('Chỉ publish được bản nháp.'); return; }
+    if (this.checkList().some(c => c.kind === 'error')) { this.say('Còn lỗi chặn publish.'); return; }
+    f.versions.forEach(x => { if (x.status === 'published') x.status = 'archived'; });
+    v.status = 'published'; v.date = '20/08/2026 09:45'; v.author = 'Bạn';
+    if (this.state.publishNote) v.note = this.state.publishNote;
+    const nums = this.state.numbers.map(n => n.id === this.state.curId ? { ...n, status:n.status === 'Nháp' ? 'Hoạt động' : n.status, updated:'20/08/2026 09:45' } : n);
+    this.setState({ flows:{ ...this.state.flows }, numbers:nums, publish:null, publishNote:'' });
+    this.say('Đã publish v' + v.no + ' — phiên bản này đang chạy thật.');
+  };
+  delVersion(id) {
+    const f = this.flow();
+    f.versions = f.versions.filter(v => v.id !== id);
+    const next = f.versions.find(v => v.status === 'draft') || f.versions.find(v => v.status === 'published') || f.versions[0];
+    this.setState({ flows:{ ...this.state.flows }, selectedVersionId:next && next.id, selNode:null });
+    this.say('Đã xóa bản nháp.');
+  }
+
+  checkList() {
+    const g = this.graph(); const out = [];
+    const starts = g.nodes.filter(n => n.type === 'start');
+    if (!starts.length) out.push({ kind:'error', text:'Kịch bản chưa có node Bắt đầu — không xác định được điểm vào.' });
+    if (starts.length > 1) out.push({ kind:'error', text:'Có ' + starts.length + ' node Bắt đầu; chỉ được phép một điểm vào.' });
+    g.nodes.forEach(n => {
+      const outs = this.outsOf(n);
+      const miss = outs.map((l, i) => ({ l, i })).filter(o => !g.edges.some(e => e.from === n.id && e.port === o.i));
+      if (miss.length) out.push({ kind:'warn', text:n.name + ' — nhánh chưa nối: ' + miss.map(m => m.l).join(', ') });
+      if (n.type === 'goto' && !n.cfg.target) out.push({ kind:'error', text:n.name + ' — node Nhảy tới chưa chọn node đích.' });
+      if (n.type === 'api' && !n.cfg.url) out.push({ kind:'error', text:n.name + ' — thiếu URL endpoint.' });
+    });
+    g.nodes.forEach(n => {
+      if (n.type !== 'start' && !g.edges.some(e => e.to === n.id)) out.push({ kind:'warn', text:n.name + ' — không có nhánh nào dẫn tới node này.' });
+    });
+    if (!out.length) out.push({ kind:'ok', text:'Kịch bản hợp lệ, mọi nhánh đã được nối.' });
+    return out;
+  }
+
+  // ── node summary line ─────────────────────────────────────────────────
+  desc(n) {
+    const c = n.cfg;
+    switch (n.type) {
+      case 'start': return 'Vào phiên · ghi âm: ' + (c.rec || '—');
+      case 'black': return 'Đối chiếu ' + (c.list || '—');
+      case 'time': {
+        const r = (c.rules || [])[0];
+        if (!r) return 'chưa đặt khung giờ';
+        const extra = (c.rules.length > 1) ? ' +' + (c.rules.length - 1) : '';
+        return r.h1 + ':' + r.n1 + '–' + r.h2 + ':' + r.n2 + ' · ' + r.wd1 + '–' + r.wd2 + extra;
+      }
+      case 'play': return 'Phát ' + (c.rec || '—');
+      case 'dtmf': return (c.rec || '—') + ' · chờ ' + (c.wait || '?') + 's';
+      case 'ext': return (c.ext || '—') + ' · ' + (c.ring || '?') + 's';
+      case 'queue': return (c.queue || '—') + ' · chờ ' + (c.maxwait || '?') + 's';
+      case 'branch': return (c.v || '?') + ' ' + (c.op || '') + ' ' + (c.val || '');
+      case 'api': return (c.method || 'GET') + ' ' + (c.url || '—');
+      case 'setvar': return (c.name || '?') + ' = ' + (c.value || '""');
+      case 'survey': return 'Thang ' + (c.scale || '—') + ' → ' + (c.save || '?');
+      case 'goto': return '→ ' + (c.target || '—');
+      case 'hangup': return c.reason || '—';
+      default: return '';
+    }
+  }
+  focus(id) { if (this._flowEl && this._flowEl.focusNode) this._flowEl.focusNode(id); }
+
+  PROSE = {
+    start:'Điểm vào của kịch bản. Mọi cuộc gọi tới đầu số này đều bắt đầu từ đây.',
+    black:'Đối chiếu số gọi đến với một danh sách trước khi cho vào kịch bản chính.',
+    time:'Rẽ nhánh theo giờ hệ thống — trong giờ, ngoài giờ và ngày lễ đi ba đường khác nhau.',
+    play:'Phát một đoạn ghi âm rồi đi tiếp. Không chờ người gọi thao tác gì.',
+    dtmf:'Phát một đoạn ghi âm rồi chờ người gọi bấm phím. Không ai bấm hoặc bấm sai thì đi theo nhánh dự phòng.',
+    ext:'Đổ chuông tới một máy nhánh. Hết thời gian mà không ai nhấc thì rẽ sang nhánh còn lại.',
+    queue:'Xếp cuộc gọi vào hàng đợi cho tới khi có nhân viên rảnh, hoặc hết thời gian chờ.',
+    branch:'So sánh một biến phiên với giá trị cho trước rồi rẽ hai đường.',
+    api:'Gọi ra hệ thống ngoài và lưu kết quả vào biến phiên để các bước sau dùng.',
+    setvar:'Gán một giá trị vào biến phiên. Không tương tác với người gọi.',
+    survey:'Hỏi người gọi chấm điểm sau cuộc gọi và lưu vào biến phiên.',
+    goto:'Nhảy tới một node khác trong cùng kịch bản — dùng để quay lại menu mà không phải nhân bản cả nhánh.',
+    hangup:'Kết thúc cuộc gọi. Đây là điểm cuối của một nhánh.',
+  };
+
+  // Opens the shared tooltip against an element. Side 'left' for anything in
+  // the inspector — it sits at the right edge, so a rightwards tooltip would
+  // open off screen.
+  tipHandler(text, side) {
+    return e => {
+      const r = e.currentTarget.getBoundingClientRect();
+      this.setState({ tip:{
+        x: side === 'left' ? Math.round(r.left - 9) : Math.round(r.right + 9),
+        y: Math.round((r.top + r.bottom) / 2), text, side: side || 'right',
+      } });
+    };
+  }
+
+  // Every node reachable by following branches forward from here.
+  reachFrom(id) {
+    const g = this.graph();
+    const seen = new Set([id]);
+    let front = [id];
+    while (front.length) {
+      const next = [];
+      front.forEach(cur => g.edges.forEach(e => {
+        if (e.from === cur && !seen.has(e.to)) { seen.add(e.to); next.push(e.to); }
+      }));
+      front = next;
+    }
+    seen.delete(id);
+    return seen.size;
+  }
+
+  // ── config fields ─────────────────────────────────────────────────────
+  fieldsFor(n) {
+    const set = (key, val) => this.mutate(g => { const t = g.nodes.find(x => x.id === n.id); if (key === '$name') t.name = val; else t.cfg[key] = val; }, 'sửa cấu hình');
+    const F = [];
+    const mk = (kind, key, label, opts, hint, ph) => {
+      const cfg = (kind === 'r' || kind === 'n') ? (opts || {}) : {};
+      const raw = n.cfg[key] ?? '';
+      F.push({
+        key, label, hint:hint || '', hasHint:!!hint, ph:ph || '',
+        gap:F.length ? (kind === 'r' ? '20px' : '22px') : '24px',
+        isText:kind === 't', isSelect:kind === 's', isArea:kind === 'a',
+        isRange:kind === 'r', isNum:kind === 'n',
+        isPlain:kind === 't' || kind === 's' || kind === 'a',
+        options:(kind === 'r' || kind === 'n') ? [] : (opts || []),
+        min:cfg.min, max:cfg.max, step:cfg.step || 1, suffix:cfg.suffix || '',
+        display:String(raw) + (cfg.unit || ''),
+        value:raw,
+        onChange:e => set(key, e.target.value),
+        onTip:hint ? this.tipHandler(hint, 'left') : null,
+      });
+    };
+    switch (n.type) {
+      case 'start':
+        mk('s', 'rec', 'Ghi âm cuộc gọi', ['Có','Không'], 'Bật thì toàn bộ cuộc gọi được lưu lại để nghe kiểm tra sau.');
+        mk('r', 'timeout', 'Tự ngắt sau', { min:30, max:600, step:30, unit:'s' }, 'Chốt chặn cuối: cuộc gọi kéo dài quá ngưỡng này sẽ bị hệ thống cắt.');
+        break;
+      case 'black':
+        mk('s', 'list', 'Danh sách đối chiếu', ['blacklist_spam','blacklist_debt','whitelist_vip'], 'Số gọi đến được so với danh sách này trước khi vào kịch bản chính.');
+        mk('s', 'act', 'Hành động khi trùng', ['Chuyển sang thông báo từ chối','Ngắt ngay','Ưu tiên vào hàng đợi VIP']);
+        break;
+      case 'time':
+        mk('s', 'tz', 'Múi giờ', ['Asia/Ho_Chi_Minh','Asia/Bangkok','UTC']);
+        break;
+      case 'play':
+        mk('s', 'rec', 'File ghi âm', this.RECORDINGS);
+        mk('s', 'interrupt', 'Cho bấm phím khi đang phát', ['Cho phép','Không'], 'Cho phép thì người gọi quen đường có thể bấm ngay, không phải nghe hết ghi âm.');
+        mk('r', 'loop', 'Phát lại', { min:1, max:5, unit:' lần' });
+        break;
+      case 'dtmf':
+        mk('s', 'rec', 'Ghi âm menu', this.RECORDINGS);
+        mk('n', 'digits', 'Nhận bao nhiêu phím', { suffix:'chữ số, rồi xử lý ngay' },
+           'Đặt 1 cho menu chọn nhánh. Đặt lớn hơn khi cần người gọi nhập mã — hệ thống chờ đủ số chữ số mới đi tiếp.');
+        mk('r', 'wait', 'Chờ người gọi bấm', { min:2, max:20, unit:'s' });
+        mk('r', 'retry', 'Nhắc lại tối đa', { min:0, max:5, unit:' lần' }, 'Hết số lần nhắc thì đi theo nhánh “Sai phím”.');
+        break;
+      case 'ext':
+        mk('s', 'ext', 'Extension đích', this.EXTS);
+        mk('r', 'ring', 'Đổ chuông trong', { min:5, max:60, step:5, unit:'s' }, 'Hết thời gian mà không ai nhấc máy thì rẽ sang nhánh “Không trả lời”.');
+        mk('s', 'moh', 'Nhạc chờ', ['moh_default','moh_corporate','Không']);
+        break;
+      case 'queue':
+        mk('s', 'queue', 'Hàng đợi', this.QUEUES);
+        mk('r', 'maxwait', 'Chờ tối đa trong hàng đợi', { min:15, max:300, step:15, unit:'s' }, 'Quá ngưỡng này cuộc gọi rẽ sang nhánh “Hết thời gian chờ”.');
+        mk('s', 'pos', 'Thông báo vị trí trong hàng đợi', ['Có','Không'], 'Đọc số thứ tự đang chờ sau mỗi vòng nhạc chờ — giảm tỷ lệ bỏ máy khi hàng đợi dài.');
+        mk('s', 'moh', 'Nhạc chờ', ['moh_default','moh_corporate','Không']);
+        break;
+      case 'branch':
+        mk('t', 'v', 'Biến', null, 'Tên biến phiên do bước trước tạo ra — ví dụ debt.amount từ node API, hoặc csat từ node khảo sát.', 'debt.amount');
+        mk('s', 'op', 'Toán tử', ['=','!=','>','>=','<','<=','chứa','tồn tại']);
+        mk('t', 'val', 'Giá trị so sánh');
+        break;
+      case 'api':
+        mk('s', 'method', 'Phương thức', ['GET','POST','PUT','PATCH']);
+        mk('t', 'url', 'Endpoint', null, null, 'https://api…');
+        mk('a', 'headers', 'Header', null, null, 'Authorization: Bearer ${token}');
+        mk('a', 'body', 'Body', null, 'Chèn biến phiên bằng ${caller} (số gọi đến) hoặc ${did} (đầu số nhận).');
+        mk('t', 'save', 'Lưu kết quả vào biến', null, 'Các bước sau đọc kết quả qua tên biến này, ví dụ debt.amount.');
+        mk('r', 'timeout', 'Chờ API trả lời', { min:500, max:10000, step:500, unit:'ms' }, 'Không kịp trả lời thì đi theo nhánh “Lỗi”.');
+        break;
+      case 'setvar':
+        mk('t', 'name', 'Tên biến');
+        mk('t', 'value', 'Giá trị', null, 'Giá trị cố định, hoặc chèn biến phiên khác bằng ${…}.');
+        break;
+      case 'survey':
+        mk('s', 'rec', 'Ghi âm câu hỏi', this.RECORDINGS);
+        mk('s', 'scale', 'Thang điểm', ['1 - 5','1 - 10','Có / Không']);
+        mk('t', 'save', 'Lưu vào biến');
+        break;
+      case 'goto':
+        mk('s', 'target', 'Node đích', [''].concat(this.graph().nodes.filter(x => x.id !== n.id).map(x => x.id + ' — ' + x.name)), 'Cuộc gọi nhảy thẳng tới node này. Cẩn thận vòng lặp: nhảy ngược về node phía trước có thể khiến cuộc gọi chạy mãi.');
+        break;
+      case 'hangup':
+        mk('s', 'reason', 'Lý do kết thúc', ['Hoàn tất kịch bản','Số bị chặn','Ngoài giờ làm việc','Người gọi bỏ máy']);
+        mk('s', 'pre', 'Phát ghi âm trước khi ngắt', ['Không'].concat(this.RECORDINGS));
+        break;
+    }
+    return F;
+  }
+
+  openNumber(id) {
+    const f = this.state.flows[id];
+    const pick = f.versions.find(v => v.status === 'draft') || f.versions.find(v => v.status === 'published') || f.versions[0];
+    this.setState({ route:'editor', filterMenu:null, menuQuery:'', curId:id, selectedVersionId:pick.id, selNode:null, selEdge:null, panelOpen:false, undo:[], redo:[] });
+  }
+
+  // ── render values ─────────────────────────────────────────────────────
+  renderVals() {
+    const s = this.state;
+    const v = { toast:s.toast, isList:s.route === 'list', isEditor:s.route === 'editor' };
+    v.tipOn = !!s.tip;
+    v.tipX = s.tip ? s.tip.x + 'px' : '0';
+    v.tipY = s.tip ? s.tip.y + 'px' : '0';
+    v.tipText = s.tip ? s.tip.text : '';
+    v.tipCls = s.tip && s.tip.side === 'left' ? 'tip-left' : '';
+    v.tipTransform = s.tip && s.tip.side === 'left' ? 'translate(-100%,-50%)' : 'translateY(-50%)';
+    v.tipMaxW = s.tip && s.tip.text.length > 34 ? '260px' : 'none';
+    v.tipWrap = s.tip && s.tip.text.length > 34 ? 'normal' : 'nowrap';
+    v.theme = s.theme;
+    v.themeNext = s.theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối';
+    v.isDark = s.theme === 'dark';
+    v.isLight = s.theme !== 'dark';
+    v.toggleTheme = () => this.setState({ theme:this.state.theme === 'dark' ? 'light' : 'dark' });
+
+    const q = s.search.trim().toLowerCase();
+    const hits = n => !q || n.number.toLowerCase().includes(q) || n.name.toLowerCase().includes(q);
+    const filtered = s.numbers.filter(n => hits(n) &&
+      (!s.statusSel.length || s.statusSel.includes(n.status)) &&
+      (!s.providerSel.length || s.providerSel.includes(n.provider)));
+    v.search = s.search;
+    v.onSearch = e => this.setState({ search:e.target.value, page:1 });
+
+    // Counts shown beside each option are computed with that facet's own
+    // selection lifted, so a number never reads as 0 just because something
+    // else in the same facet is already ticked.
+    const FACETS = [
+      { key:'statusSel', label:'Trạng thái', field:'status',
+        opts:['Hoạt động','Tạm dừng','Nháp'] },
+      { key:'providerSel', label:'Nhà mạng', field:'provider',
+        opts:this.PROVIDERS.filter(p => p !== 'Tất cả nhà mạng') },
+    ];
+    const tone = st => st === 'Hoạt động' ? 'var(--ok-dot)'
+      : st === 'Tạm dừng' ? 'transparent' : 'var(--warn-dot)';
+
+    v.facets = FACETS.map(f => {
+      const sel = s[f.key];
+      return {
+        label:f.label, count:String(sel.length), hasCount:sel.length > 0,
+        bg:sel.length ? 'var(--acc-soft)' : 'var(--bg-raised)',
+        bd:sel.length ? 'var(--acc)' : 'var(--bd-str)',
+        color:sel.length ? 'var(--acc-ink)' : 'var(--fg)',
+        iconColor:sel.length ? 'var(--acc)' : 'var(--fg-3)',
+        open:e => {
+          const r = e.currentTarget.getBoundingClientRect();
+          this.setState({ menuQuery:'', filterMenu:this.state.filterMenu && this.state.filterMenu.key === f.key
+            ? null : { key:f.key, label:f.label, x:Math.round(r.left), y:Math.round(r.bottom + 6) } });
+        },
+      };
+    });
+    v.anyFilter = !!(s.search || s.statusSel.length || s.providerSel.length);
+    v.clearFilters = () => this.setState({ search:'', statusSel:[], providerSel:[], page:1 });
+
+    const menu = s.route === 'list' ? s.filterMenu : null;
+    v.menuOn = !!menu;
+    v.menuX = menu ? menu.x + 'px' : '0';
+    v.menuY = menu ? menu.y + 'px' : '0';
+    v.menuLabel = menu ? menu.label : '';
+    v.menuQuery = s.menuQuery;
+    v.onMenuQuery = e => this.setState({ menuQuery:e.target.value });
+    v.closeMenu = () => this.setState({ filterMenu:null });
+    v.menuHasSel = !!(menu && s[menu.key].length);
+    v.clearMenu = () => this.setState({ [menu.key]:[], page:1 });
+    if (menu) {
+      const f = FACETS.find(x => x.key === menu.key);
+      const sel = s[menu.key];
+      const mq = s.menuQuery.trim().toLowerCase();
+      // rows the OTHER facet and the search box already allow
+      const base = s.numbers.filter(n => hits(n) && FACETS.every(o =>
+        o.key === f.key || !s[o.key].length || s[o.key].includes(n[o.field])));
+      const items = f.opts.filter(o => !mq || o.toLowerCase().includes(mq)).map(o => {
+        const on = sel.includes(o);
+        return {
+          label:o, on, count:String(base.filter(n => n[f.field] === o).length),
+          bg:on ? 'var(--acc-veil)' : 'transparent',
+          color:on ? 'var(--acc-ink)' : 'var(--fg)',
+          boxBd:on ? 'var(--acc)' : 'var(--bd-str)',
+          boxBg:on ? 'var(--acc)' : 'transparent',
+          dot:f.field === 'status' ? tone(o) : 'transparent',
+          dotRing:f.field === 'status' && o === 'Tạm dừng' ? 'inset 0 0 0 1.5px var(--fg-3)' : 'none',
+          toggle:() => this.setState({
+            [f.key]:on ? sel.filter(x => x !== o) : sel.concat([o]), page:1 }),
+        };
+      });
+      v.menuItems = items;
+      v.menuEmpty = items.length === 0;
+    } else { v.menuItems = []; v.menuEmpty = false; }
+
+    // Pagination. The page index is clamped on read rather than corrected in
+    // state, so narrowing a filter can never leave the table on an empty page.
+    const per = s.perPage;
+    const pageCount = Math.max(1, Math.ceil(filtered.length / per));
+    const page = Math.min(s.page, pageCount);
+    const from = (page - 1) * per;
+    const shown = filtered.slice(from, from + per);
+    v.hasPager = filtered.length > 0;
+    v.perPage = String(per);
+    v.perPageOpts = ['5','10','20','50'];
+    v.onPerPage = e => this.setState({ perPage:parseInt(e.target.value, 10), page:1 });
+    v.pageRangeLabel = filtered.length
+      ? (from + 1) + '–' + Math.min(from + per, filtered.length) + ' trong ' + filtered.length + ' đầu số'
+      : 'Không có đầu số';
+    v.onFirst = page <= 1; v.onLast = page >= pageCount;
+    v.prevColor = page <= 1 ? 'var(--fg-3)' : 'var(--fg-2)';
+    v.nextColor = page >= pageCount ? 'var(--fg-3)' : 'var(--fg-2)';
+    v.prevCursor = page <= 1 ? 'default' : 'pointer';
+    v.nextCursor = page >= pageCount ? 'default' : 'pointer';
+    v.prevPage = () => this.setState({ page:Math.max(1, page - 1) });
+    v.nextPage = () => this.setState({ page:Math.min(pageCount, page + 1) });
+    // A window around the current page, with ellipses standing in for the rest,
+    // so the control keeps its width whether there are 3 pages or 300.
+    const nums = [];
+    for (let i = 1; i <= pageCount; i++) {
+      if (i === 1 || i === pageCount || Math.abs(i - page) <= 1) nums.push(i);
+      else if (nums[nums.length - 1] !== '…') nums.push('…');
+    }
+    v.pages = nums.map(n => n === '…'
+      ? { label:'…', cursor:'default', color:'var(--fg-3)', bg:'transparent', bd:'transparent', go:() => {} }
+      : { label:String(n), cursor:'pointer',
+          color:n === page ? 'var(--acc-fg)' : 'var(--fg-2)',
+          bg:n === page ? 'var(--acc)' : 'var(--bg-raised)',
+          bd:n === page ? 'var(--acc)' : 'var(--bd-str)',
+          go:() => this.setState({ page:n }) });
+
+    v.rowCountLabel = 'Trang ' + page + ' / ' + pageCount;
+    v.listEmpty = filtered.length === 0;
+    const stTone = st => st === 'Hoạt động' ? { bg:'var(--ok-soft)', color:'var(--ok)', dot:'var(--ok-dot)' }
+      : st === 'Tạm dừng' ? { bg:'var(--bg-muted)', color:'var(--fg-2)', dot:'var(--fg-3)' }
+        : { bg:'var(--warn-soft)', color:'var(--warn)', dot:'var(--warn-dot)' };
+    v.rows = shown.map(n => {
+      const f = s.flows[n.id] || { versions:[] };
+      const pub = f.versions.find(x => x.status === 'published');
+      const draft = f.versions.find(x => x.status === 'draft');
+      const shown = pub || draft;
+      const t = stTone(n.status);
+      return {
+        number:n.number, name:n.name, kind:n.kind, provider:n.provider, calls:n.calls, status:n.status,
+        stBg:t.bg, stColor:t.color, stDot:t.dot,
+        versionLabel:pub ? 'v' + pub.no : 'chưa publish',
+        verBg:pub ? 'var(--bg-muted)' : 'var(--warn-soft)', verColor:pub ? 'var(--fg)' : 'var(--warn)',
+        nodeCountLabel:shown ? shown.graph.nodes.length + ' node' : '—',
+        hasDraft:!!draft,
+        open:e => { if (e && e.stopPropagation) e.stopPropagation(); this.openNumber(n.id); },
+        remove:e => { e.stopPropagation(); this.setState({ numbers:s.numbers.filter(x => x.id !== n.id) }); this.say('Đã xóa đầu số ' + n.number); },
+      };
+    });
+    const act = s.numbers.filter(n => n.status === 'Hoạt động').length;
+    const drafts = Object.values(s.flows).filter(f => f.versions.some(x => x.status === 'draft')).length;
+    v.stats = [
+      { label:'Tổng đầu số', value:String(s.numbers.length), delta:'', deltaColor:'var(--fg-3)', hint:'Đang cấu hình trên hệ thống' },
+      { label:'Đang hoạt động', value:String(act), delta:'', deltaColor:'var(--fg-3)', hint:'Có phiên bản đang chạy thật' },
+      { label:'Bản nháp chờ publish', value:String(drafts), delta:'', deltaColor:'var(--warn)', hint:'Cần review trước khi phát hành' },
+      { label:'Cuộc gọi 24h', value:'7.812', delta:'+8,4%', deltaColor:'var(--ok)', hint:'So với cùng kỳ hôm qua' },
+    ];
+    v.openCreate = () => this.setState({ modal:'create', modalDraft:{ number:'', name:'', kind:'Hotline 1900', provider:'Viettel', status:'Nháp' } });
+
+    v.showNumberModal = !!s.modal;
+    v.modalTitle = 'Thêm đầu số';
+    v.modalSub = 'Đầu số mới được tạo kèm một bản nháp kịch bản mẫu để bạn sửa tiếp.';
+    v.modalCta = 'Tạo đầu số';
+    v.closeModal = () => this.setState({ modal:null });
+    const d = s.modalDraft;
+    const setD = (k, val) => this.setState({ modalDraft:{ ...this.state.modalDraft, [k]:val } });
+    const dupe = s.numbers.some(n => n.number.replace(/\s/g, '') === (d.number || '').replace(/\s/g, ''));
+    v.numberFields = [
+      { label:'Đầu số', isText:true, value:d.number || '', ph:'1900 xxxx', wrap:'', onChange:e => setD('number', e.target.value),
+        hasHint:true, hint:dupe && d.number ? 'Đầu số này đã tồn tại.' : 'Bắt buộc — dùng khoảng trắng cho dễ đọc.', hintColor:dupe && d.number ? 'var(--err)' : 'var(--fg-2)' },
+      { label:'Tên dịch vụ', isText:true, value:d.name || '', ph:'VD: Tổng đài CSKH', wrap:'', onChange:e => setD('name', e.target.value), hasHint:false, hint:'' },
+      { label:'Loại đầu số', isSelect:true, value:d.kind || '', options:['Hotline 1900','Hotline 1900 · thu phí','Freephone 1800','Số cố định'], wrap:'', onChange:e => setD('kind', e.target.value), hasHint:false, hint:'' },
+      { label:'Nhà mạng', isSelect:true, value:d.provider || '', options:['Viettel','VNPT','Mobifone','FPT Telecom'], wrap:'', onChange:e => setD('provider', e.target.value), hasHint:false, hint:'' },
+      { label:'Trạng thái', isSelect:true, value:d.status || '', options:['Hoạt động','Tạm dừng','Nháp'], wrap:'grid-column:span 2', onChange:e => setD('status', e.target.value),
+        hasHint:true, hint:'Đầu số mới nên ở trạng thái Nháp cho tới khi publish phiên bản đầu tiên.', hintColor:'var(--fg-2)' },
+    ];
+    v.saveNumber = () => {
+      const dd = this.state.modalDraft;
+      if (!dd.number || !dd.name) { this.say('Cần nhập đầu số và tên dịch vụ.'); return; }
+      if (dupe) { this.say('Đầu số đã tồn tại.'); return; }
+      const id = 'p' + Date.now();
+      const nn = { id, number:dd.number, name:dd.name, kind:dd.kind, provider:dd.provider, status:dd.status, calls:'0', updated:'20/08/2026 09:40' };
+      const flows = { ...s.flows };
+      flows[id] = { versions:[{ id:id + 'v1', no:1, name:'Bản khởi tạo', status:'draft', author:'Bạn', date:'20/08/2026 09:40', note:'Kịch bản mẫu 3 cấp, sửa lại theo nghiệp vụ rồi publish.', graph:this.simpleGraph(dd.name) }] };
+      this.setState({ numbers:s.numbers.concat([nn]), flows, modal:null });
+      this.say('Đã tạo ' + dd.number + ' kèm bản nháp kịch bản.');
+    };
+
+    if (s.route !== 'editor' || !s.curId) return v;
+
+    const num = s.numbers.find(n => n.id === s.curId);
+    const f = this.flow(); const ver = this.version(); const g = this.graph();
+    const ro = !this.editable();
+    v.curNumber = num.number; v.curName = num.name;
+    v.curMeta = num.provider + ' · ' + num.kind + ' · cập nhật ' + num.updated;
+    v.backToList = () => this.setState({ route:'list', selNode:null, selEdge:null, filterMenu:null, menuQuery:'' });
+    v.onFlowRef = this.onFlowRef;
+    v.selectedVersionId = ver.id;
+    v.versionCount = f.versions.length;
+    v.versionOptions = f.versions.map(x => ({ id:x.id, label:'v' + x.no + ' · ' + (x.status === 'published' ? 'đang chạy' : x.status === 'draft' ? 'nháp' : 'lưu trữ') }));
+    v.onPickVersion = e => this.setState({ selectedVersionId:e.target.value, selNode:null, selEdge:null });
+    const vt = ver.status === 'published' ? { bg:'var(--ok-soft)', color:'var(--ok)', dot:'var(--ok-dot)', label:'Đang chạy thật' }
+      : ver.status === 'draft' ? { bg:'var(--warn-soft)', color:'var(--warn)', dot:'var(--warn-dot)', label:'Bản nháp' }
+        : { bg:'var(--bg-muted)', color:'var(--fg-2)', dot:'var(--fg-3)', label:'Lưu trữ' };
+    v.verStatusLabel = vt.label; v.verBg = vt.bg; v.verColor = vt.color; v.verDot = vt.dot;
+    v.readOnly = ro;
+    v.readOnlyMsg = ver.status === 'published' ? 'v' + ver.no + ' đang chạy thật nên không sửa trực tiếp được.' : 'v' + ver.no + ' đã lưu trữ. Nhân bản để dùng lại.';
+    v.cloneToDraft = this.cloneToDraft;
+    v.saveTitle = ro ? 'Phiên bản chỉ đọc' : 'Lưu bản nháp';
+    v.saveColor = ro ? 'var(--fg-3)' : 'var(--fg-2)';
+    v.saveDraft = () => { if (ro) { this.say('Phiên bản này chỉ đọc.'); return; } this.say('Đã lưu bản nháp v' + ver.no + '.'); };
+    v.dirtyLabel = ro ? '' : (s.undo.length ? 'chưa lưu' : 'đã lưu');
+    v.dirtyColor = s.undo.length ? 'var(--warn)' : 'var(--fg-2)';
+    v.fitView = () => this._flowEl && this._flowEl.fitView();
+    v.undo = this.undoAct; v.redo = this.redoAct;
+    v.undoColor = s.undo.length ? 'var(--fg)' : 'var(--fg-3)';
+    v.redoColor = s.redo.length ? 'var(--fg)' : 'var(--fg-3)';
+    v.autoLayout = () => { if (ro) { this.say('Phiên bản này chỉ đọc.'); return; } this._flowEl && this._flowEl.autoLayout(); };
+    const et = s.edgeType || this.props.edgeStyle || 'default';
+    v.showKeys = s.showKeys;
+    v.openKeys = () => this.setState({ showKeys:true });
+    v.closeKeys = () => this.setState({ showKeys:false });
+    v.keyRows = [
+      { what:'Hoàn tác / làm lại', key:'⌘Z · ⇧⌘Z' },
+      { what:'Bôi chọn nhiều node', key:'⇧ + kéo' },
+      { what:'Chế độ chọn vùng (kéo trái để bôi)', key:'V' },
+      { what:'Thêm / bớt node khỏi vùng chọn', key:'⌘ + click' },
+      { what:'Xóa node hoặc nhánh đang chọn', key:'Delete' },
+      { what:'Tự sắp xếp', key:'L' },
+      { what:'Vừa khung', key:'F' },
+      { what:'Đóng panel, hộp thoại', key:'Esc' },
+      { what:'Bảng phím tắt này', key:'?' },
+    ];
+    v.toggleMarquee = () => this.setState({ marquee:!this.state.marquee });
+    v.marqueeBg = s.marquee ? 'var(--acc-soft)' : 'transparent';
+    v.marqueeColor = s.marquee ? 'var(--acc)' : 'var(--fg-2)';
+    v.marqueeTitle = s.marquee
+      ? 'Đang ở chế độ chọn vùng — kéo để bôi chọn, chuột giữa để di chuyển canvas'
+      : 'Chế độ chọn vùng (V) — kéo để bôi chọn nhiều node';
+    v.marqueeIcon = s.marquee
+      ? 'M5 3H3v2 M3 10v4 M5 21H3v-2 M10 3h4 M10 21h4 M19 3h2v2 M21 10v4 M19 21h2v-2'
+      : 'm3 3 7.1 17 2.5-7.5L20 10z';
+
+    v.edgeModes = [
+      { id:'default', title:'Đường nối cong (bezier)', d:'M3 18c6 0 4-12 18-12' },
+      { id:'smoothstep', title:'Đường nối bậc bo góc', d:'M3 18h6a3 3 0 0 0 3-3V9a3 3 0 0 1 3-3h6' },
+      { id:'straight', title:'Đường nối thẳng', d:'M3 19 21 5' },
+    ].map(m => ({
+      title:m.title, d:m.d,
+      bg:et === m.id ? 'var(--bg-muted)' : 'transparent',
+      color:et === m.id ? 'var(--fg)' : 'var(--fg-3)',
+      pick:() => this.setState({ edgeType:m.id }),
+    }));
+    v.openVersions = () => this.setState({ showVersions:true });
+    v.closeVersions = () => this.setState({ showVersions:false });
+    v.showVersionDrawer = s.showVersions;
+    v.graphEmpty = g.nodes.length === 0;
+
+    // Collapsed, the library keeps only each node's code chip; the full label
+    // moves into the tooltip so nothing is lost.
+    v.palOpen = s.palOpen; v.palClosed = !s.palOpen;
+    v.palW = s.palOpen ? '236px' : '56px';
+    v.palListPad = s.palOpen ? '0 12px 16px' : '0 8px 16px';
+    v.palListOverflowX = s.palOpen ? 'hidden' : 'visible';
+    v.palOverflow = s.palOpen ? 'hidden' : 'visible';
+    v.palItemPad = s.palOpen ? '8px' : '8px 0';
+    v.palItemJustify = s.palOpen ? 'flex-start' : 'center';
+    v.palToggleTitle = s.palOpen ? 'Thu gọn thư viện node' : 'Mở rộng thư viện node';
+    v.palToggleIcon = s.palOpen ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6';
+    v.togglePalette = () => this.setState({ palOpen:!this.state.palOpen, paletteQuery:'', tip:null });
+    v.hideTip = () => { if (this.state.tip) this.setState({ tip:null }); };
+
+    const pq = s.paletteQuery.trim().toLowerCase();
+    v.paletteQuery = s.paletteQuery;
+    v.onPaletteQuery = e => this.setState({ paletteQuery:e.target.value });
+    v.paletteGroups = this.GROUPS.map(grp => ({
+      name:grp.name,
+      items:grp.types.filter(t => !pq || this.NT[t].label.toLowerCase().includes(pq) || this.NT[t].code.toLowerCase().includes(pq)).map(t => {
+        const c = this.col(t);
+        return {
+          code:this.NT[t].code, label:this.NT[t].label, bg:c.fill, fg:c.ink, br:c.stroke,
+          onTip:e => {
+            const r = e.currentTarget.getBoundingClientRect();
+            this.setState({ tip:{ x:Math.round(r.right + 9), y:Math.round((r.top + r.bottom) / 2), side:'right',
+              text:this.state.palOpen ? 'Kéo vào canvas hoặc click để thêm' : this.NT[t].label } });
+          },
+          onDragStart:e => e.dataTransfer.setData('text/ivr-node', t),
+          onAdd:() => {
+            const xs = g.nodes.map(n => n.x);
+            const x = xs.length ? Math.max.apply(null, xs) + 300 : 0;
+            this.addNode(t, x, 200);
+          },
+        };
+      }),
+    })).filter(grp => grp.items.length);
+
+    const issues = this.checkList().filter(c => c.kind !== 'ok');
+    v.statNodes = g.nodes.length + ' node';
+    v.statEdges = g.edges.length + ' nhánh';
+    v.statIssues = issues.length ? issues.length + ' cảnh báo' : 'hợp lệ';
+    v.statIssueColor = issues.length ? 'var(--warn)' : 'var(--ok)';
+
+    v.panelOpen = s.panelOpen;
+    v.panelTitle = s.selEdge && !s.selNode ? 'Đường nối' : 'Cấu hình node';
+    const overlay = s.vw > 0 && s.vw < 1180;
+    v.panelW = s.panelPx + 'px';
+    v.gripBg = s.resizing ? 'var(--acc)' : 'transparent';
+    v.startResize = e => {
+      e.preventDefault();
+      const x0 = e.clientX, w0 = this.state.panelPx;
+      const move = ev => this.setState({ panelPx:Math.max(300, Math.min(560, w0 + (x0 - ev.clientX))) });
+      const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); this.setState({ resizing:false }); };
+      window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+      this.setState({ resizing:true });
+    };
+    v.resetResize = () => this.setState({ panelPx:360 });
+    v.panelPos = overlay ? 'absolute' : 'relative';
+    v.panelShadow = overlay ? 'var(--sh-3)' : 'var(--sh-2)';
+    const tucked = (overlay && s.panelOpen) || s.vw < 900;
+    v.barTop = tucked ? '56px' : '12px';
+    v.barLeft = tucked ? '12px' : 'auto';
+    v.barRight = tucked ? 'auto' : '12px';
+    v.barDir = tucked ? 'column' : 'row';
+    v.barW = tucked ? '38px' : 'auto';
+    v.barPad = tucked ? '4px 0' : '4px';
+    v.divW = tucked ? '18px' : '1px';
+    v.divH = tucked ? '1px' : '30px';
+    v.divM = tucked ? '4px 0' : '0 4px';
+    v.canvasMinimap = (this.props.showMinimap ?? true) && !tucked;
+    v.closePanel = () => this.setState({ panelOpen:false });
+
+    const selE = s.selEdge && g.edges.find(e => e.id === s.selEdge);
+    const sel = s.selNode && this.byId(s.selNode);
+    v.hasEdgeSel = !!selE && !sel;
+    v.hasSelection = !!sel; v.noSelection = !sel && !selE;
+    if (selE) {
+      const from = this.byId(selE.from), to = this.byId(selE.to);
+      const label = from ? (this.outsOf(from)[selE.port] || 'Nhánh') : 'Nhánh';
+      const fb = this.FALLBACK.test(label);
+      v.edgeBranch = label;
+      v.edgeDot = fb ? 'var(--err-dot)' : from ? this.col(from.type).stroke : 'var(--fg-3)';
+      v.edgeFromName = from ? from.name : '—';
+      v.edgeFromCode = from ? this.NT[from.type].code : '?';
+      v.edgeFromBg = from ? this.col(from.type).fill : 'var(--bg-muted)';
+      v.edgeFromInk = from ? this.col(from.type).ink : 'var(--fg-2)';
+      v.edgeToName = to ? to.name : '—';
+      v.edgeToCode = to ? this.NT[to.type].code : '?';
+      v.edgeToBg = to ? this.col(to.type).fill : 'var(--bg-muted)';
+      v.edgeToInk = to ? this.col(to.type).ink : 'var(--fg-2)';
+      v.deleteEdge = () => { this.delEdge(selE.id); this.setState({ panelOpen:false }); };
+    }
+    if (sel) {
+      const c = this.col(sel.type);
+      v.selCode = this.NT[sel.type].code; v.selTypeLabel = this.NT[sel.type].label; v.selId = sel.id;
+      v.selBg = c.fill; v.selFg = c.ink; v.selBr = c.stroke;
+      v.fields = this.fieldsFor(sel);
+      v.selName = sel.name;
+      v.onSelName = e => this.mutate(gg => { gg.nodes.find(x => x.id === sel.id).name = e.target.value; }, 'đổi tên node');
+      v.selProse = this.PROSE[sel.type] || '';
+      v.onProseTip = this.tipHandler(v.selProse, 'left');
+      v.onKeysTip = this.tipHandler('Mỗi phím là một nhánh đi ra trên canvas. Xóa phím sẽ xóa luôn nhánh đã nối của nó.', 'left');
+
+      const outs0 = this.outsOf(sel);
+      const linked = outs0.filter((l, i) => g.edges.some(e => e.from === sel.id && e.port === i)).length;
+      const pct = outs0.length ? Math.round((linked / outs0.length) * 100) : 100;
+      v.selHasOuts = outs0.length > 0;
+      v.connPct = pct + '%';
+      v.connColor = pct === 100 ? 'var(--ok)' : pct === 0 ? 'var(--err)' : 'var(--warn)';
+      v.connSub = linked + ' / ' + outs0.length + ' nhánh đã trỏ tới node khác'
+        + (linked < outs0.length ? ' · nhánh chưa nối sẽ làm cuộc gọi dừng giữa chừng' : '');
+
+      const issue = this.nodeIssue(sel);
+      const inCount = g.edges.filter(e => e.to === sel.id).length;
+      v.derived = [
+        { k:'Node dẫn vào bước này', v:String(inCount),
+          color:inCount === 0 && sel.type !== 'start' ? 'var(--warn)' : 'var(--fg)' },
+        { k:'Node phía sau bị ảnh hưởng', v:String(this.reachFrom(sel.id)), color:'var(--fg)' },
+        { k:'Cấu hình bắt buộc', v:issue ? 'Thiếu' : 'Đủ', color:issue ? 'var(--err)' : 'var(--ok)' },
+      ];
+      // ── time windows, PBX-style ─────────────────────────────────────
+      // A list of rules instead of two free-text fields: each rule fixes a
+      // start and a finish on four axes (clock, weekday, day of month, month),
+      // and "—" means "any" on that axis. A caller matches the node's "Trong
+      // giờ" branch when they fall inside ANY rule.
+      v.isTime = sel.type === 'time';
+      v.onTimeTip = this.tipHandler('Cuộc gọi khớp bất kỳ khung nào thì đi theo nhánh “Trong giờ”. Dấu “—” nghĩa là không giới hạn ở trục đó — để trống Ngày, Tháng và Năm thì khung lặp lại mãi; đặt Năm để giới hạn một đợt duy nhất.', 'left');
+      const R = sel.cfg.rules || [];
+      const setR = (i, k) => e => this.mutate(gg => {
+        const t = gg.nodes.find(x => x.id === sel.id);
+        t.cfg.rules = (t.cfg.rules || []).map((r, j) => (j === i ? { ...r, [k]: e.target.value } : r));
+      }, 'sửa khung giờ');
+      const pad = n => String(n).padStart(2, '0');
+      const HH = Array.from({ length: 24 }, (_, i) => pad(i));
+      const MM = Array.from({ length: 12 }, (_, i) => pad(i * 5));
+      const WD = ['—', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+      const MD = ['—'].concat(Array.from({ length: 31 }, (_, i) => String(i + 1)));
+      const MO = ['—'].concat(Array.from({ length: 12 }, (_, i) => 'Th' + (i + 1)));
+      const Y0 = new Date().getFullYear();
+      const YR = ['—'].concat(Array.from({ length: 7 }, (_, i) => String(Y0 + i)));
+      const anyAxis = (a, b) => a === '—' && b === '—';
+      v.timeRules = R.map((r, i) => ({
+        title: R.length > 1 ? 'Khung ' + (i + 1) : 'Khung giờ',
+        summary: r.h1 + ':' + r.n1 + '–' + r.h2 + ':' + r.n2
+          + (anyAxis(r.wd1, r.wd2) ? ' · mọi ngày' : ' · ' + r.wd1 + '–' + r.wd2)
+          + (anyAxis(r.mo1, r.mo2) ? '' : ' · ' + r.mo1 + '–' + r.mo2)
+          + (anyAxis(r.y1 || '—', r.y2 || '—') ? '' : ' · ' + (r.y1 || '—') + '–' + (r.y2 || '—')),
+        canRemove: R.length > 1,
+        remove: () => this.mutate(gg => {
+          const t = gg.nodes.find(x => x.id === sel.id);
+          t.cfg.rules = t.cfg.rules.filter((_, j) => j !== i);
+        }, 'xóa khung giờ'),
+        rows: [
+          { label:'Giờ', pair:true,
+            aVal:r.h1, aOpts:HH, aSet:setR(i, 'h1'), bVal:r.n1, bOpts:MM, bSet:setR(i, 'n1'),
+            cVal:r.h2, cOpts:HH, cSet:setR(i, 'h2'), dVal:r.n2, dOpts:MM, dSet:setR(i, 'n2') },
+          { label:'Thứ', pair:false,
+            aVal:r.wd1, aOpts:WD, aSet:setR(i, 'wd1'), cVal:r.wd2, cOpts:WD, cSet:setR(i, 'wd2'),
+            bOpts:[], dOpts:[] },
+          { label:'Ngày', pair:false,
+            aVal:r.md1, aOpts:MD, aSet:setR(i, 'md1'), cVal:r.md2, cOpts:MD, cSet:setR(i, 'md2'),
+            bOpts:[], dOpts:[] },
+          { label:'Tháng', pair:false,
+            aVal:r.mo1, aOpts:MO, aSet:setR(i, 'mo1'), cVal:r.mo2, cOpts:MO, cSet:setR(i, 'mo2'),
+            bOpts:[], dOpts:[] },
+          { label:'Năm', pair:false,
+            aVal:r.y1 || '—', aOpts:YR, aSet:setR(i, 'y1'), cVal:r.y2 || '—', cOpts:YR, cSet:setR(i, 'y2'),
+            bOpts:[], dOpts:[] },
+        ],
+      }));
+      v.addRule = () => this.mutate(gg => {
+        const t = gg.nodes.find(x => x.id === sel.id);
+        t.cfg.rules = (t.cfg.rules || []).concat([
+          { h1:'08', n1:'00', h2:'17', n2:'30', wd1:'—', wd2:'—', md1:'—', md2:'—', mo1:'—', mo2:'—', y1:'—', y2:'—' },
+        ]);
+      }, 'thêm khung giờ');
+
+      v.isDtmf = sel.type === 'dtmf';
+      v.dtmfKeys = (sel.cfg.keys || []).map((k, i) => ({
+        key:k.key, label:k.label,
+        onKey:e => this.mutate(gg => { gg.nodes.find(x => x.id === sel.id).cfg.keys[i].key = e.target.value; }, 'sửa phím'),
+        onLabel:e => this.mutate(gg => { gg.nodes.find(x => x.id === sel.id).cfg.keys[i].label = e.target.value; }, 'sửa nhãn phím'),
+        onRemove:() => this.mutate(gg => {
+          const t = gg.nodes.find(x => x.id === sel.id); t.cfg.keys.splice(i, 1);
+          gg.edges = gg.edges.filter(e => !(e.from === sel.id && e.port === i));
+          gg.edges.forEach(e => { if (e.from === sel.id && e.port > i) e.port -= 1; });
+        }, 'xóa phím'),
+      }));
+      v.addKey = () => this.mutate(gg => { const t = gg.nodes.find(x => x.id === sel.id); t.cfg.keys = (t.cfg.keys || []).concat([{ key:String((t.cfg.keys || []).length + 1), label:'Nhánh mới' }]); }, 'thêm phím');
+      const outs = this.outsOf(sel);
+      v.selNoOuts = outs.length === 0;
+      v.selOuts = outs.map((label, i) => {
+        const e = g.edges.find(x => x.from === sel.id && x.port === i);
+        const tgt = e && this.byId(e.to);
+        const fb = this.FALLBACK.test(label);
+        return {
+          label, hasEdge:!!e,
+          dot:e ? (fb ? 'var(--err-dot)' : 'var(--ok-dot)') : 'transparent',
+          dotRing:e ? 'none' : 'inset 0 0 0 1.5px var(--warn-dot)',
+          rowBg:e ? 'var(--bg-sub)' : 'var(--warn-soft)',
+          rowBd:e ? 'var(--bd-sub)' : 'var(--warn-bd)',
+          labColor:e ? (fb ? 'var(--err)' : 'var(--fg-2)') : 'var(--warn)',
+          target:tgt ? tgt.name : 'Chưa nối',
+          targetColor:tgt ? 'var(--fg-3)' : 'var(--warn)',
+          unlink:() => this.delEdge(e.id) };
+      });
+      v.duplicateNode = () => this.mutate(gg => {
+        const id = 'n' + (++this.uidn);
+        gg.nodes.push({ ...JSON.parse(JSON.stringify(sel)), id, x:sel.x + 48, y:sel.y + 48, name:sel.name + ' (bản sao)' });
+      }, 'nhân bản node');
+      v.centerNode = () => this.focus(sel.id);
+      v.deleteNode = this.delNode;
+    } else {
+      v.fields = []; v.dtmfKeys = []; v.selOuts = []; v.isDtmf = false; v.isTime = false; v.timeRules = []; v.selNoOuts = false;
+    }
+
+    v.versionCards = f.versions.map(x => {
+      const t = x.status === 'published' ? { bg:'var(--ok-soft)', color:'var(--ok)', dot:'var(--ok-dot)', label:'Đang chạy' }
+        : x.status === 'draft' ? { bg:'var(--warn-soft)', color:'var(--warn)', dot:'var(--warn-dot)', label:'Nháp' }
+          : { bg:'var(--bg-muted)', color:'var(--fg-2)', dot:'var(--fg-3)', label:'Lưu trữ' };
+      return {
+        tag:'v' + x.no, name:x.name, note:x.note,
+        statusLabel:t.label, chipBg:t.bg, chipColor:t.color, chipDot:t.dot,
+        border:x.status === 'published' ? 'var(--ok-bd)' : 'var(--bd)',
+        bg:x.status === 'published' ? 'var(--ok-soft)' : '#fff',
+        isOpen:x.id === ver.id,
+        meta:x.author + ' · ' + x.date,
+        size:x.graph.nodes.length + ' node · ' + x.graph.edges.length + ' nhánh',
+        canClone:x.status !== 'draft' && !f.versions.some(y => y.status === 'draft'),
+        canPublish:x.status === 'draft',
+        canDelete:x.status === 'draft' && f.versions.length > 1,
+        open:() => this.setState({ selectedVersionId:x.id, showVersions:false, selNode:null, selEdge:null }),
+        clone:() => this.setState({ selectedVersionId:x.id }, () => this.cloneToDraft()),
+        publish:() => this.setState({ selectedVersionId:x.id, showVersions:false, publish:true, publishNote:'' }),
+        remove:() => this.delVersion(x.id),
+      };
+    });
+
+    v.showPublishModal = !!s.publish;
+    v.openPublish = () => {
+      if (ver.status !== 'draft') { this.say('Chỉ publish được bản nháp — nhân bản trước.'); return; }
+      this.setState({ publish:true, publishNote:'' });
+    };
+    v.closePublish = () => this.setState({ publish:null });
+    v.publishTitle = 'Publish v' + ver.no + ' cho ' + num.number;
+    v.publishSub = 'Sau khi publish, v' + ver.no + ' trở thành phiên bản chạy thật; phiên bản đang chạy sẽ chuyển sang lưu trữ.';
+    const checks = this.checkList();
+    v.checks = checks.map(c => ({
+      tag:c.kind === 'error' ? 'Lỗi' : c.kind === 'warn' ? 'Cảnh báo' : 'Hợp lệ',
+      bg:c.kind === 'error' ? 'var(--err-soft)' : c.kind === 'warn' ? 'var(--warn-soft)' : 'var(--ok-soft)',
+      color:c.kind === 'error' ? 'var(--err)' : c.kind === 'warn' ? 'var(--warn)' : 'var(--ok)',
+      text:c.text,
+    }));
+    const blocked = checks.some(c => c.kind === 'error');
+    v.publishNote = s.publishNote;
+    v.onPublishNote = e => this.setState({ publishNote:e.target.value });
+    v.publishHint = blocked ? 'Còn lỗi chặn — sửa trước khi publish.' : 'Cảnh báo không chặn publish.';
+    v.publishCta = blocked ? 'Chưa thể publish' : 'Publish ngay';
+    v.publishBtnBg = blocked ? 'var(--fg-3)' : 'var(--acc)';
+    v.confirmPublish = this.doPublish;
+    return v;
+  }
+}
+
+</script>
+</body>
+</html>
