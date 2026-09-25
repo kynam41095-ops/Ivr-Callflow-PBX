@@ -32,10 +32,19 @@ test.describe("builder-canvas", () => {
     await openBuilder(page);
   });
 
-  test("TC-CALL-015 — palette chỉ có đúng sáu loại bước, không lộ bảy loại đã bỏ", async ({
-    page,
-  }) => {
+  test.describe("TC-CALL-015 viewport 1440x900", () => {
+    test.use({ viewport: { width: 1440, height: 900 } });
+
+    test("TC-CALL-015 — palette thu gọn: 0 palette-label, không aria-label nào chứa bảy tên đã bỏ; mở rộng: đúng sáu tên (sửa CR 5)", async ({
+      page,
+    }) => {
+    const palette = page.locator('[data-testid="palette"]');
     const items = page.locator('[data-testid="palette-item"]');
+
+    // Palette mặc định thu gọn (Quy ước lô 10): 0 palette-label nhìn thấy,
+    // sáu mục vẫn có mặt qua data-node-type + aria-label.
+    await expect(palette).toHaveAttribute("data-state", "collapsed");
+    await expect(page.locator('[data-testid="palette-label"]')).toHaveCount(0);
     await expect(items).toHaveCount(6);
 
     const types = await items.evaluateAll((els) =>
@@ -44,6 +53,21 @@ test.describe("builder-canvas", () => {
     expect(types).toEqual(
       ["hangup", "menu", "play", "queue", "schedule", "start"].sort(),
     );
+
+    const ariaLabelsCollapsed = await items.evaluateAll((els) =>
+      els.map((el) => (el.getAttribute("aria-label") ?? "").toLowerCase()),
+    );
+    for (const forbidden of FORBIDDEN_PALETTE_TYPES) {
+      for (const label of ariaLabelsCollapsed) {
+        expect(label, `aria-label mục palette không chứa "${forbidden}"`).not.toContain(
+          forbidden.toLowerCase(),
+        );
+      }
+    }
+
+    // Bấm palette-toggle rồi mới đọc nhãn — kết luận của AC-11 giữ.
+    await page.locator('[data-testid="palette-toggle"]').click();
+    await expect(palette).toHaveAttribute("data-state", "expanded");
 
     // Lô 9: mỗi palette-item chứa palette-code rồi palette-label — nhãn AC-11
     // đọc từ palette-label, không phải toàn bộ text của palette-item (mã
@@ -82,6 +106,7 @@ test.describe("builder-canvas", () => {
         `nhãn palette không chứa "${forbidden}"`,
       ).not.toContain(forbidden.toLowerCase());
     }
+    });
   });
 
   test("TC-CALL-016 — node Chuyển hàng đợi không có điểm nối nguồn nào trên canvas", async ({

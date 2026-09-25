@@ -38,6 +38,75 @@ async function dragStepFromPalette(page: Page, type: string) {
   await item.dragTo(page.locator(".react-flow__pane"));
 }
 
+/**
+ * Chín phần tử "một hàng" của `builder-toolbar` theo Quy ước chung lô 10:
+ * nav-numbers · builder-name · version-select · version-status ·
+ * versions-open · dirty-status · validate · save-draft · new-flow.
+ */
+const ROW_TESTIDS = [
+  "nav-numbers",
+  "builder-name",
+  "version-select",
+  "version-status",
+  "versions-open",
+  "dirty-status",
+  "validate",
+  "save-draft",
+  "new-flow",
+] as const;
+type RowBoxes = Record<(typeof ROW_TESTIDS)[number], { x: number; y: number; width: number; height: number }>;
+
+async function measureRowElements(page: Page): Promise<RowBoxes> {
+  const boxes = {} as RowBoxes;
+  for (const id of ROW_TESTIDS) {
+    const loc = id === "version-select" ? page.locator('select[data-testid="version-select"]') : page.locator(`[data-testid="${id}"]`);
+    const box = await loc.boundingBox();
+    if (!box) throw new Error(`không lấy được boundingBox của ${id}`);
+    boxes[id] = box;
+  }
+  return boxes;
+}
+
+/** Mọi cặp trong chín phần tử phải giao nhau theo trục dọc (cùng một hàng). */
+function assertOneRow(boxes: RowBoxes, label: string) {
+  for (let i = 0; i < ROW_TESTIDS.length; i += 1) {
+    for (let j = i + 1; j < ROW_TESTIDS.length; j += 1) {
+      const a = boxes[ROW_TESTIDS[i]];
+      const b = boxes[ROW_TESTIDS[j]];
+      const overlap = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+      expect(
+        overlap,
+        `${label}: ${ROW_TESTIDS[i]} và ${ROW_TESTIDS[j]} phải giao nhau theo trục dọc (một hàng)`,
+      ).toBeGreaterThan(0);
+    }
+    // Thứ tự trái→phải đúng DOM: nav-numbers · builder-name · version-select
+    // · version-status · versions-open · dirty-status · validate · save-draft
+    // · new-flow (Quy ước chung lô 10).
+    if (i > 0) {
+      const prev = boxes[ROW_TESTIDS[i - 1]];
+      const cur = boxes[ROW_TESTIDS[i]];
+      expect(
+        cur.x,
+        `${label}: ${ROW_TESTIDS[i]} phải nằm bên phải ${ROW_TESTIDS[i - 1]} (thứ tự DOM)`,
+      ).toBeGreaterThanOrEqual(prev.x);
+    }
+  }
+}
+
+/** Mép phải `new-flow` phải cách mép phải `builder-toolbar` đúng 16 px. */
+function assertRightGap16(
+  boxes: RowBoxes,
+  toolbarBox: { x: number; width: number },
+  label: string,
+) {
+  const toolbarRight = toolbarBox.x + toolbarBox.width;
+  const gap = toolbarRight - (boxes["new-flow"].x + boxes["new-flow"].width);
+  expect(
+    Math.round(gap),
+    `${label}: mép phải new-flow cách mép phải builder-toolbar 16 px`,
+  ).toBe(16);
+}
+
 /** Giá trị CSS đã tính của một phần tử dò mang `<cssProp>: var(<varName>)`. */
 async function resolvedVar(page: Page, cssProp: string, varName: string): Promise<string> {
   return page.evaluate(
@@ -86,11 +155,25 @@ test.describe("chrome-visual", () => {
 
     await openBuilder(page);
 
+    // AC-40: đo bố cục "một hàng" lúc nghỉ (trước khi lưu nháp), trước khi
+    // chạy các kiểm còn lại của AC-34.
+    assertOneRow(await measureRowElements(page), "lúc nghỉ, trước lưu nháp");
+
     const toolbar = page.locator('[data-testid="builder-toolbar"]');
     await expect(toolbar).toBeVisible();
     await expect(toolbar.locator('[data-testid="nav-numbers"]')).toBeVisible();
     await expect(toolbar.locator('[data-testid="builder-number"]')).toBeVisible();
     await expect(toolbar.locator('[data-testid="builder-flow-name"]')).toBeVisible();
+
+    // Dòng phụ builder-meta = provider · kind của đầu số đang gán FLOW_MAIN.
+    await expect(toolbar.locator('[data-testid="builder-meta"]')).toHaveText("Viettel · Hotline 1900");
+
+    // save-draft nền --acc.
+    const acc = await resolvedVar(page, "background-color", "--acc");
+    const saveDraftBg = await toolbar
+      .locator('[data-testid="save-draft"]')
+      .evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(saveDraftBg, "save-draft nền --acc").toBe(acc);
 
     const versionSelect = toolbar.locator('select[data-testid="version-select"]');
     const versionStatus = toolbar.locator('[data-testid="version-status"]');
@@ -138,6 +221,11 @@ test.describe("chrome-visual", () => {
 
     await expect(canvasStatus).toHaveText(`${actualNodeCount} node · ${actualEdgeCount} nhánh · hợp lệ`);
 
+    // Palette mặc định thu gọn (lô 10) — palette-label chỉ render khi mở,
+    // mở rộng trước khi đọc nhãn (Rủi ro của lô 10 trong lot-brief).
+    await page.locator('[data-testid="palette-toggle"]').click();
+    await expect(page.locator('[data-testid="palette"]')).toHaveAttribute("data-state", "expanded");
+
     // Nhãn palette không tràn ở 1440 px (vd. "Điều kiện theo lịch").
     const paletteLabels = page.locator('[data-testid="palette-label"]');
     const paletteLabelCount = await paletteLabels.count();
@@ -161,6 +249,8 @@ test.describe("chrome-visual", () => {
 
     await expect(dirtyStatus).toHaveText("chưa lưu");
     await expect(dirtyStatus).toHaveAttribute("data-state", "unsaved");
+    // "chưa lưu" vẫn một hàng.
+    assertOneRow(await measureRowElements(page), "trạng thái chưa lưu");
 
     await page.locator('[data-testid="save-draft"]').click();
     await expect(page.locator('[data-testid="save-status"]')).toHaveAttribute("data-state", "saved", {
@@ -168,6 +258,8 @@ test.describe("chrome-visual", () => {
     });
     await expect(dirtyStatus).toHaveText("đã lưu");
     await expect(dirtyStatus).toHaveAttribute("data-state", "saved");
+    // "đã lưu" vẫn một hàng.
+    assertOneRow(await measureRowElements(page), "trạng thái đã lưu");
 
     // Thả một node Kết thúc không nối, bấm kiểm tra hợp lệ.
     await dragStepFromPalette(page, "hangup");
@@ -177,6 +269,131 @@ test.describe("chrome-visual", () => {
     await expect(canvasStatus).toHaveText(/1 cảnh báo$/, { timeout: 3000 });
     await expect(dirtyStatus).toHaveText("chưa lưu");
     await expect(dirtyStatus).toHaveAttribute("data-state", "unsaved");
+
+    expect(pageErrors, "0 sự kiện pageerror").toEqual([]);
+    expect(consoleErrors, "0 console error").toEqual([]);
+  });
+
+  test("TC-FLOW-032 (CR 5) — đầu trang một hàng giữ nguyên bề rộng (trừ builder-name) ở 1440 và 1131 px, cả ba trạng thái nghỉ/chưa lưu/đã lưu", async ({
+    page,
+  }) => {
+    const pageErrors: Error[] = [];
+    const consoleErrors: string[] = [];
+    listenErrors(page, pageErrors, consoleErrors);
+
+    type StateName = "rest" | "dirty" | "saved";
+    const STATE_LABELS: Record<StateName, string> = {
+      rest: "lúc nghỉ",
+      dirty: "chưa lưu",
+      saved: "đã lưu",
+    };
+    const byViewport: Record<number, Record<StateName, RowBoxes>> = {};
+
+    for (const width of [1440, 1131] as const) {
+      await page.setViewportSize({ width, height: 900 });
+      // Buộc tải trang thật: page.goto tới cùng URL hash trước đó không
+      // reload SPA (điều hướng cùng tài liệu), khiến kho giả lập giữ bản
+      // nháp đã lưu từ vòng viewport trước. Đi qua about:blank trước để
+      // vòng viewport sau luôn khởi động từ seed sạch.
+      await page.goto("about:blank");
+      await openBuilder(page);
+
+      const states = {} as Record<StateName, RowBoxes>;
+
+      // Trạng thái nghỉ.
+      const toolbarBoxRest = await page.locator('[data-testid="builder-toolbar"]').boundingBox();
+      if (!toolbarBoxRest) throw new Error("không lấy được boundingBox của builder-toolbar");
+      states.rest = await measureRowElements(page);
+      assertOneRow(states.rest, `${width}×900 ${STATE_LABELS.rest}`);
+      assertRightGap16(states.rest, toolbarBoxRest, `${width}×900 ${STATE_LABELS.rest}`);
+      // Chứng minh trạng thái tươi (kho giả lập về seed, không giữ bản nháp
+      // đã lưu ở vòng viewport trước).
+      await expect(page.locator('[data-testid="versions-open"]')).toHaveText("Phiên bản · 2");
+
+      // Kéo một node có sẵn trên canvas — "chưa lưu".
+      const draggedNode = page.locator(".react-flow__node").first();
+      const draggedBoxBefore = await draggedNode.boundingBox();
+      if (!draggedBoxBefore) throw new Error("không lấy được boundingBox của node để kéo");
+      const dragStartX = draggedBoxBefore.x + draggedBoxBefore.width / 2;
+      const dragStartY = draggedBoxBefore.y + draggedBoxBefore.height / 2;
+      await page.mouse.move(dragStartX, dragStartY);
+      await page.mouse.down();
+      await page.mouse.move(dragStartX + 120, dragStartY + 80, { steps: 10 });
+      await page.mouse.up();
+      await expect(page.locator('[data-testid="dirty-status"]')).toHaveText("chưa lưu");
+
+      const toolbarBoxDirty = await page.locator('[data-testid="builder-toolbar"]').boundingBox();
+      if (!toolbarBoxDirty) throw new Error("không lấy được boundingBox của builder-toolbar");
+      states.dirty = await measureRowElements(page);
+      assertOneRow(states.dirty, `${width}×900 ${STATE_LABELS.dirty}`);
+      assertRightGap16(states.dirty, toolbarBoxDirty, `${width}×900 ${STATE_LABELS.dirty}`);
+
+      // Lưu nháp — "đã lưu".
+      await page.locator('[data-testid="save-draft"]').click();
+      await expect(page.locator('[data-testid="save-status"]')).toHaveAttribute("data-state", "saved", {
+        timeout: 3000,
+      });
+      await expect(page.locator('[data-testid="dirty-status"]')).toHaveText("đã lưu");
+
+      const toolbarBoxSaved = await page.locator('[data-testid="builder-toolbar"]').boundingBox();
+      if (!toolbarBoxSaved) throw new Error("không lấy được boundingBox của builder-toolbar");
+      states.saved = await measureRowElements(page);
+      assertOneRow(states.saved, `${width}×900 ${STATE_LABELS.saved}`);
+      assertRightGap16(states.saved, toolbarBoxSaved, `${width}×900 ${STATE_LABELS.saved}`);
+
+      byViewport[width] = states;
+    }
+
+    // "co và cắt": builder-name ở 1131 hẹp hơn ở 1440; builder-flow-name,
+    // builder-meta co lại bằng text-overflow: ellipsis (đo ở trạng thái nghỉ).
+    expect(
+      byViewport[1131].rest["builder-name"].width,
+      "builder-name ở 1131 hẹp hơn ở 1440",
+    ).toBeLessThan(byViewport[1440].rest["builder-name"].width);
+
+    await page.setViewportSize({ width: 1131, height: 900 });
+    await openBuilder(page);
+    for (const testid of ["builder-flow-name", "builder-meta"] as const) {
+      const overflow = await page
+        .locator(`[data-testid="${testid}"]`)
+        .evaluate((el) => getComputedStyle(el).textOverflow);
+      expect(overflow, `${testid} phải text-overflow: ellipsis`).toBe("ellipsis");
+    }
+
+    // Bề rộng ±1 px chỉ so giữa hai viewport trong cùng một trạng thái —
+    // không so giữa các trạng thái (lưu nháp đổi chữ versions-open,
+    // dirty-status là hợp lệ, không phải hồi quy bố cục).
+    for (const state of ["rest", "dirty", "saved"] as const) {
+      for (const id of ROW_TESTIDS) {
+        if (id === "builder-name") continue;
+        expect(
+          Math.abs(byViewport[1131][state][id].width - byViewport[1440][state][id].width),
+          `${id} giữ nguyên bề rộng ở 1131 so với 1440, trạng thái "${STATE_LABELS[state]}" (±1 px)`,
+        ).toBeLessThanOrEqual(1);
+      }
+    }
+
+    expect(pageErrors, "0 sự kiện pageerror").toEqual([]);
+    expect(consoleErrors, "0 console error").toEqual([]);
+  });
+
+  test("TC-FLOW-032 (CR 5) — kịch bản chưa gán đầu số mở bằng new-flow: dòng 1 ghi Chưa gán đầu số, không dòng phụ", async ({
+    page,
+  }) => {
+    const pageErrors: Error[] = [];
+    const consoleErrors: string[] = [];
+    listenErrors(page, pageErrors, consoleErrors);
+
+    await openBuilder(page);
+    const urlBefore = page.url();
+
+    await page.locator('[data-testid="new-flow"]').click();
+    await expect(page).not.toHaveURL(urlBefore);
+
+    const builderName = page.locator('[data-testid="builder-name"]');
+    await expect(builderName).toContainText("Chưa gán đầu số");
+    await expect(page.locator('[data-testid="builder-meta"]')).toHaveCount(0);
+    assertOneRow(await measureRowElements(page), "kịch bản chưa gán đầu số");
 
     expect(pageErrors, "0 sự kiện pageerror").toEqual([]);
     expect(consoleErrors, "0 console error").toEqual([]);
@@ -257,7 +474,7 @@ test.describe("chrome-visual", () => {
     expect(consoleErrors, "0 console error").toEqual([]);
   });
 
-  test("TC-FLOW-029 — không phần tử nào còn style mặc định của trình duyệt: --sans, --mono tabular-nums, không nền ButtonFace", async ({
+  test("TC-FLOW-029 (CR 5) — --sans mọi nơi trừ version-select; version-select nay --mono tabular-nums; không nền ButtonFace", async ({
     page,
   }) => {
     const pageErrors: Error[] = [];
@@ -269,7 +486,7 @@ test.describe("chrome-visual", () => {
       return resolvedVar(page, "font-family", "--sans");
     })();
 
-    // Màn 1 — số đầu số: number-dialog mở.
+    // Màn 1 — số đầu số: number-dialog mở. Không version-select ở màn này.
     await page.locator('[data-testid="number-create"]').click();
     await expect(page.locator('dialog[data-testid="number-dialog"]')).toBeVisible();
 
@@ -280,17 +497,21 @@ test.describe("chrome-visual", () => {
     await checkMono(page, '[data-testid="number-node-count"]', "#/numbers number-node-count");
 
     // Màn 2 — trình dựng (điều hướng thẳng, dialog đóng theo khi rời trang).
+    // AC-41 (sửa CR 5): version-select không còn thuộc phép đo --sans, nay
+    // --mono với tabular-nums.
     await openBuilder(page);
     await checkSansAndButtons(page, sans, nativeButtonBg, "trình dựng");
     await checkMono(page, '[data-testid="builder-number"]', "builder-number");
     await checkMono(page, '[data-testid="canvas-status"]', "canvas-status");
     await checkMono(page, '[data-testid="dirty-status"]', "dirty-status");
+    await checkMono(page, 'select[data-testid="version-select"]', "version-select (trình dựng)");
 
     // Màn 3 — drawer phiên bản.
     await page.locator('button[data-testid="versions-open"]').click();
     await expect(page.locator('aside[data-testid="versions-drawer"]')).toBeVisible();
     await checkSansAndButtons(page, sans, nativeButtonBg, "drawer phiên bản");
     await checkMono(page, '[data-testid="version-code"]', "version-code");
+    await checkMono(page, 'select[data-testid="version-select"]', "version-select (drawer)");
 
     expect(pageErrors, "0 sự kiện pageerror").toEqual([]);
     expect(consoleErrors, "0 console error").toEqual([]);
@@ -309,6 +530,10 @@ async function checkSansAndButtons(
     for (let i = 0; i < count; i += 1) {
       const el = els.nth(i);
       if (!(await el.isVisible())) continue;
+      // AC-41 (sửa CR 5): version-select không còn thuộc phép đo --sans —
+      // nó nay dùng --mono, kiểm riêng bằng checkMono.
+      const testid = await el.getAttribute("data-testid");
+      if (testid === "version-select") continue;
       const font = await el.evaluate((node) => getComputedStyle(node).fontFamily);
       expect(font, `${screenLabel}: ${selector}[${i}] font-family phải bằng --sans`).toBe(sans);
     }

@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type MouseEvent,
+} from "react";
 import {
   Background,
   BackgroundVariant,
@@ -163,6 +171,12 @@ function BuilderInner({ flowId }: { flowId: string }) {
   // (review BLOCKING "Chọn phiên bản trong lúc đang lưu…").
   const [pickingVersion, setPickingVersion] = useState(false);
   const [pickError, setPickError] = useState("");
+  // Palette thu gọn/mở rộng — MỖI lần dựng BuilderScreen bắt đầu thu gọn (Quy
+  // ước chung lô 10). tip là nhãn của mục đang được rê chuột lúc thu gọn; toạ
+  // độ lấy từ bounding rect của mục: left = cạnh phải + 9, top = tâm dọc (bản
+  // dựng thử dòng 1700-1702).
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [tip, setTip] = useState<{ label: string; x: number; y: number } | null>(null);
   const { screenToFlowPosition } = useReactFlow();
 
   // Tải phiên bản (mới nhất, hoặc bản trong targetVersionRef) qua ranh giới
@@ -324,11 +338,37 @@ function BuilderInner({ flowId }: { flowId: string }) {
   // từ ref ghi ở onDragStart (rủi ro kéo thả, 3-plan-03).
   const onPaletteDragStart = useCallback(
     (event: DragEvent<HTMLDivElement>, type: StepType) => {
+      // Kéo bắt đầu thì ẩn tooltip — chuột không rời mục nên mouseleave không bắn.
+      setTip(null);
       dragTypeRef.current = type;
       event.dataTransfer.setData("application/reactflow", type);
       event.dataTransfer.effectAllowed = "move";
     },
     [],
+  );
+
+  // Bấm toggle: đổi trạng thái palette và ẩn tooltip (Quy ước chung lô 10).
+  const togglePalette = useCallback(() => {
+    setTip(null);
+    setPaletteOpen((open) => !open);
+  }, []);
+
+  const hideTip = useCallback(() => setTip(null), []);
+
+  // Tooltip chỉ có khi thu gọn — lúc mở, nhãn đã hiện ngay trên mục.
+  const showTip = useCallback(
+    (event: MouseEvent<HTMLDivElement>, type: StepType) => {
+      if (paletteOpen) {
+        return;
+      }
+      const rect = event.currentTarget.getBoundingClientRect();
+      setTip({
+        label: stepLabel(type),
+        x: Math.round(rect.right + 9),
+        y: Math.round((rect.top + rect.bottom) / 2),
+      });
+    },
+    [paletteOpen],
   );
 
   // dragend bắn trên phần tử nguồn cho cả thả lẫn huỷ (Escape, thả ngoài
@@ -571,6 +611,16 @@ function BuilderInner({ flowId }: { flowId: string }) {
 
   const openVersion = versions.find((version) => version.id === openVersionId);
 
+  // Dòng phụ đầu trang: provider · kind của đầu số đang gán, bỏ khoá null;
+  // rỗng thì không render (Quy ước chung lô 10, bản dựng thử dòng 285).
+  const builderMeta = [did?.provider, did?.kind]
+    .filter((part): part is string => part !== null && part !== undefined)
+    .join(" · ");
+
+  // Chữ và icon nút thu/mở palette — bản dựng thử dòng 1686-1687.
+  const paletteToggleTitle = paletteOpen ? "Thu gọn thư viện node" : "Mở rộng thư viện node";
+  const paletteToggleIcon = paletteOpen ? "M15 18l-6-6 6-6" : "M9 18l6-6-6-6";
+
   return (
     <div className="builder">
       <div className="builder-toolbar" data-testid="builder-toolbar">
@@ -582,14 +632,26 @@ function BuilderInner({ flowId }: { flowId: string }) {
         >
           ←
         </a>
-        <span className="builder-number num" data-testid="builder-number">
-          {did?.number ?? "Chưa gán đầu số"}
-        </span>
-        <span className="builder-flow-name" data-testid="builder-flow-name">
-          {flow?.name ?? ""}
-        </span>
+        {/* Khối tên hai dòng (bản dựng thử 280-286) — con co giãn DUY NHẤT của
+            hàng: mọi phần tử khác flex:none nên đổi chữ ở đâu cũng không đẩy
+            nhóm nút ghim phải (builder-actions margin-left:auto). */}
+        <div className="builder-name" data-testid="builder-name">
+          <div className="builder-name-line">
+            <span className="builder-number num" data-testid="builder-number">
+              {did?.number ?? "Chưa gán đầu số"}
+            </span>
+            <span className="builder-flow-name" data-testid="builder-flow-name">
+              {flow?.name ?? ""}
+            </span>
+          </div>
+          {builderMeta !== "" ? (
+            <div className="builder-meta" data-testid="builder-meta">
+              {builderMeta}
+            </div>
+          ) : null}
+        </div>
         <select
-          className="builder-version-select"
+          className="builder-version-select num"
           data-testid="version-select"
           value={openVersionId ?? ""}
           onChange={(event) => pickVersion(event.target.value)}
@@ -623,123 +685,143 @@ function BuilderInner({ flowId }: { flowId: string }) {
         <button type="button" data-testid="versions-open" onClick={openVersions}>
           Phiên bản · {versions.length}
         </button>
-        {pickError !== "" ? (
-          <span className="builder-pick-error" data-testid="pick-error" role="alert">
-            {pickError}
-          </span>
-        ) : null}
-        <span
-          className="builder-dirty-status num"
-          data-testid="dirty-status"
-          data-state={isDirty ? "unsaved" : "saved"}
-        >
-          {isDirty ? "chưa lưu" : "đã lưu"}
-        </span>
-        <button
-          type="button"
-          data-testid="validate"
-          onClick={handleValidate}
-          disabled={phase !== "ready"}
-        >
-          Kiểm tra hợp lệ
-        </button>
-        <button
-          type="button"
-          data-testid="save-draft"
-          onClick={handleSave}
-          disabled={phase !== "ready" || save.state === "saving" || restoring || pickingVersion}
-        >
-          Lưu nháp
-        </button>
-        <button type="button" data-testid="new-flow" onClick={handleNewFlow} disabled={creating}>
-          Kịch bản mới
-        </button>
-        <span
-          className="builder-save-status"
-          data-testid="save-status"
-          data-state={save.state}
-          data-version-number={save.state === "saved" ? save.versionNumber : undefined}
-          role={save.state === "error" ? "alert" : undefined}
-        >
-          {save.state === "saving"
-            ? "Đang lưu…"
-            : save.state === "saved"
-              ? `Đã lưu bản nháp v${save.versionNumber}`
-              : save.state === "error"
-                ? `Không lưu được: ${save.message}`
-                : ""}
-        </span>
-        {validation !== null ? (
-          <div
-            className="builder-validate-result"
-            data-testid="validate-result"
-            data-valid={validation.valid ? "true" : "false"}
+        {/* Nhóm ghim phải (bản dựng thử 295-303): margin-left:auto nên mép phải
+            của nó luôn sát đệm đầu trang — phần tử ĐỨNG TRƯỚC đổi bề rộng (vd
+            "Phiên bản · 3") không đẩy các nút trong nhóm. Mọi thông báo
+            (save-status, validate-result, pick-error, new-flow-error) rời hàng,
+            xuống canvas-hud — Quy ước chung lô 10. */}
+        <div className="builder-actions">
+          <span
+            className="builder-dirty-status num"
+            data-testid="dirty-status"
+            data-state={isDirty ? "unsaved" : "saved"}
           >
-            <span className="builder-validate-summary">
-              {validation.valid ? "Kịch bản hợp lệ" : `Kịch bản có ${errorCount} lỗi`}
-              {warningCount > 0 ? `, ${warningCount} cảnh báo` : ""}
-            </span>
-            {looseIssues.map((issue, index) => (
-              <span
-                key={index}
-                className="builder-validate-issue"
-                data-testid="validate-issue"
-                data-code={issue.code}
-                data-severity={issue.severity}
-              >
-                {issue.message}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        {newFlowError !== "" ? (
-          <span className="builder-new-flow-error" data-testid="new-flow-error" role="alert">
-            {newFlowError}
+            {isDirty ? "chưa lưu" : "đã lưu"}
           </span>
-        ) : null}
+          <button
+            type="button"
+            data-testid="validate"
+            onClick={handleValidate}
+            disabled={phase !== "ready"}
+          >
+            Kiểm tra hợp lệ
+          </button>
+          <button
+            type="button"
+            className="builder-save-draft"
+            data-testid="save-draft"
+            onClick={handleSave}
+            disabled={phase !== "ready" || save.state === "saving" || restoring || pickingVersion}
+          >
+            Lưu nháp
+          </button>
+          <button type="button" data-testid="new-flow" onClick={handleNewFlow} disabled={creating}>
+            Kịch bản mới
+          </button>
+        </div>
       </div>
       <div className="builder-body">
-        <div className="builder-palette" data-testid="palette">
-          <div className="palette-title">Thư viện node</div>
-          {PALETTE_GROUPS.map((group) => (
-            <div key={group.name} className="palette-group">
-              <div className="palette-group-name">{group.name}</div>
-              {group.types.map((type) => (
-                <div
-                  key={type}
-                  className="builder-palette-item"
-                  draggable
-                  data-testid="palette-item"
-                  data-node-type={type}
-                  onDragStart={(event) => onPaletteDragStart(event, type)}
-                  onDragEnd={onPaletteDragEnd}
-                >
-                  <span
-                    className="palette-code"
-                    data-testid="palette-code"
-                    style={{
-                      background: `var(--n-${tokenSuffix(type)}-s)`,
-                      color: `var(--n-${tokenSuffix(type)}-t)`,
-                      borderColor: `var(--n-${tokenSuffix(type)}-b)`,
-                    }}
-                  >
-                    {stepCode(type)}
-                  </span>
-                  <span className="palette-label" data-testid="palette-label">
-                    {stepLabel(type)}
-                  </span>
+        <div
+          className="builder-palette"
+          data-testid="palette"
+          data-state={paletteOpen ? "expanded" : "collapsed"}
+        >
+          <div className="palette-head">
+            {paletteOpen ? (
+              <div className="palette-title" data-testid="palette-title">
+                Thư viện node
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className="palette-toggle"
+              data-testid="palette-toggle"
+              title={paletteToggleTitle}
+              aria-label={paletteToggleTitle}
+              onClick={togglePalette}
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d={paletteToggleIcon} />
+              </svg>
+            </button>
+          </div>
+          <div className="palette-list">
+            {PALETTE_GROUPS.map((group) => (
+              <div key={group.name} className="palette-group">
+                {paletteOpen ? (
+                  <div className="palette-group-name" data-testid="palette-group-name">
+                    {group.name}
+                  </div>
+                ) : (
+                  // Thu gọn: nhóm ngăn nhau bằng vạch 1px thay cho tên nhóm
+                  // (bản dựng thử dòng 337).
+                  <div className="palette-group-sep" />
+                )}
+                <div className="palette-items">
+                  {group.types.map((type) => (
+                    <div
+                      key={type}
+                      className="builder-palette-item"
+                      draggable
+                      data-testid="palette-item"
+                      data-node-type={type}
+                      aria-label={stepLabel(type)}
+                      onDragStart={(event) => onPaletteDragStart(event, type)}
+                      onDragEnd={onPaletteDragEnd}
+                      onMouseEnter={(event) => showTip(event, type)}
+                      onMouseLeave={hideTip}
+                    >
+                      <span
+                        className="palette-code"
+                        data-testid="palette-code"
+                        style={{
+                          background: `var(--n-${tokenSuffix(type)}-s)`,
+                          color: `var(--n-${tokenSuffix(type)}-t)`,
+                          borderColor: `var(--n-${tokenSuffix(type)}-b)`,
+                        }}
+                      >
+                        {stepCode(type)}
+                      </span>
+                      {paletteOpen ? (
+                        <span className="palette-label" data-testid="palette-label">
+                          {stepLabel(type)}
+                        </span>
+                      ) : null}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            ))}
+          </div>
+          {tip !== null ? (
+            <div
+              className="palette-tooltip"
+              data-testid="palette-tooltip"
+              role="tooltip"
+              style={{ left: tip.x, top: tip.y, transform: "translateY(-50%)" }}
+            >
+              {tip.label}
             </div>
-          ))}
+          ) : null}
         </div>
         <div className="builder-canvas">
-          {phase === "loading" ? (
-            <p className="builder-loading">Đang tải…</p>
-          ) : phase === "error" ? (
-            <ErrorState message={`Không tải được kịch bản: ${errorMessage}`} onRetry={reload} />
-          ) : (
-            <>
+          {/* HUD góc trên trái của canvas, có ở MỌI phase: canvas-status (chỉ
+              khi ready) rồi tới mọi thông báo — chúng rời builder-toolbar để
+              đổi chữ không xê dịch hàng đầu trang (Quy ước chung lô 10).
+              pointer-events:none để không chắn thao tác trên canvas (kể cả bỏ
+              chọn bằng .react-flow__pane). */}
+          <div className="canvas-hud">
+            {phase === "ready" ? (
               <span className="canvas-status num" data-testid="canvas-status">
                 {nodes.length} node <span className="canvas-status-sep">·</span> {edges.length} nhánh{" "}
                 <span className="canvas-status-sep">·</span>{" "}
@@ -747,6 +829,62 @@ function BuilderInner({ flowId }: { flowId: string }) {
                   {canvasErrorCount > 0 ? `${canvasErrorCount} cảnh báo` : "hợp lệ"}
                 </span>
               </span>
+            ) : null}
+            <span
+              className="builder-save-status"
+              data-testid="save-status"
+              data-state={save.state}
+              data-version-number={save.state === "saved" ? save.versionNumber : undefined}
+              role={save.state === "error" ? "alert" : undefined}
+            >
+              {save.state === "saving"
+                ? "Đang lưu…"
+                : save.state === "saved"
+                  ? `Đã lưu bản nháp v${save.versionNumber}`
+                  : save.state === "error"
+                    ? `Không lưu được: ${save.message}`
+                    : ""}
+            </span>
+            {validation !== null ? (
+              <div
+                className="builder-validate-result"
+                data-testid="validate-result"
+                data-valid={validation.valid ? "true" : "false"}
+              >
+                <span className="builder-validate-summary">
+                  {validation.valid ? "Kịch bản hợp lệ" : `Kịch bản có ${errorCount} lỗi`}
+                  {warningCount > 0 ? `, ${warningCount} cảnh báo` : ""}
+                </span>
+                {looseIssues.map((issue, index) => (
+                  <span
+                    key={index}
+                    className="builder-validate-issue"
+                    data-testid="validate-issue"
+                    data-code={issue.code}
+                    data-severity={issue.severity}
+                  >
+                    {issue.message}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {pickError !== "" ? (
+              <span className="builder-pick-error" data-testid="pick-error" role="alert">
+                {pickError}
+              </span>
+            ) : null}
+            {newFlowError !== "" ? (
+              <span className="builder-new-flow-error" data-testid="new-flow-error" role="alert">
+                {newFlowError}
+              </span>
+            ) : null}
+          </div>
+          {phase === "loading" ? (
+            <p className="builder-loading">Đang tải…</p>
+          ) : phase === "error" ? (
+            <ErrorState message={`Không tải được kịch bản: ${errorMessage}`} onRetry={reload} />
+          ) : (
+            <>
               <NodeIssuesContext.Provider value={issuesByNode}>
                 <CatalogContext.Provider value={catalog}>
                   <ReactFlow
