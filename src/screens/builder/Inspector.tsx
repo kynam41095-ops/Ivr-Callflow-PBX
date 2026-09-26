@@ -25,6 +25,9 @@ export type InspectorProps = {
   node: Node;
   media: MediaAsset[];
   queues: QueueRecord[];
+  // Phím → tên node đích, tính từ cạnh thật (BuilderScreen) — phím vắng
+  // trong map nghĩa là chưa nối (lô 12, AC-48).
+  choiceTargets: Record<string, string>;
   onDataChange: (data: Record<string, unknown>) => void;
   onBranchRemoved: (handle: string) => void;
   // Đổi phím của Menu: BuilderScreen đổi sourceHandle và id cạnh cùng lượt với
@@ -170,11 +173,13 @@ function RangeField({
 
 function ChoicesField({
   data,
+  choiceTargets,
   onDataChange,
   onBranchRemoved,
   onBranchRenamed,
 }: {
   data: Record<string, unknown>;
+  choiceTargets: Record<string, string>;
   onDataChange: (data: Record<string, unknown>) => void;
   onBranchRemoved: (handle: string) => void;
   onBranchRenamed: (oldHandle: string, newHandle: string) => void;
@@ -239,6 +244,8 @@ function ChoicesField({
           if (!options.includes(key)) {
             options.unshift(key);
           }
+          const targetName = choiceTargets[key];
+          const linked = targetName !== undefined;
           return (
             <div className="choice-row" data-testid="choice-row" data-key={key} key={key}>
               <select
@@ -254,6 +261,13 @@ function ChoicesField({
                   </option>
                 ))}
               </select>
+              <span
+                className="choice-target"
+                data-testid="choice-target"
+                data-state={linked ? "linked" : "unlinked"}
+              >
+                {linked ? `→ ${targetName}` : "Chưa nối"}
+              </span>
               <button
                 type="button"
                 className="choice-remove"
@@ -464,6 +478,7 @@ export function Inspector({
   node,
   media,
   queues,
+  choiceTargets,
   onDataChange,
   onBranchRemoved,
   onBranchRenamed,
@@ -581,6 +596,7 @@ export function Inspector({
             />
             <ChoicesField
               data={data}
+              choiceTargets={choiceTargets}
               onDataChange={onDataChange}
               onBranchRemoved={onBranchRemoved}
               onBranchRenamed={onBranchRenamed}

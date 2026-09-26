@@ -594,6 +594,34 @@ function BuilderInner({ flowId }: { flowId: string }) {
       : validation.issues.filter((issue) => issue.severity === "warning").length;
 
   const selectedNode = nodes.find((node) => node.selected);
+
+  // Bản đồ phím → tên node đích (lô 12, AC-48): đọc từ CẠNH thật của
+  // selectedNode, không từ data.choices — data.choices giữ id ngay cả khi
+  // cạnh đã bị xoá/đổi hướng trên canvas. Phím vắng trong map = "Chưa nối".
+  // Tên đích ưu tiên label (nguyên văn, không trim) rồi mới tới stepLabel.
+  const choiceTargets = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (selectedNode === undefined) {
+      return map;
+    }
+    for (const edge of edges) {
+      if (edge.source !== selectedNode.id || typeof edge.sourceHandle !== "string") {
+        continue;
+      }
+      if (!edge.sourceHandle.startsWith("choice-")) {
+        continue;
+      }
+      const targetNode = nodes.find((node) => node.id === edge.target);
+      if (targetNode === undefined) {
+        continue;
+      }
+      const label = targetNode.data.label;
+      const targetType = typeof targetNode.data.type === "string" ? targetNode.data.type : "";
+      map[edge.sourceHandle.slice("choice-".length)] =
+        typeof label === "string" && label.trim() !== "" ? label : stepLabel(targetType);
+    }
+    return map;
+  }, [edges, nodes, selectedNode]);
   const catalog = useMemo(() => ({ media, queues }), [media, queues]);
   // Cạnh tô màu lúc render (AC-31) — memo hoá vì styledEdges tạo mảng mới
   // mỗi lần gọi; gọi thẳng trong JSX làm mọi thẻ render lại theo tham chiếu
@@ -942,6 +970,7 @@ function BuilderInner({ flowId }: { flowId: string }) {
             node={selectedNode}
             media={media}
             queues={queues}
+            choiceTargets={choiceTargets}
             onDataChange={(data) => changeNodeData(selectedNode.id, data)}
             onBranchRemoved={(handle) => removeBranchEdges(selectedNode.id, handle)}
             onBranchRenamed={(oldHandle, newHandle) =>

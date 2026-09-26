@@ -358,6 +358,22 @@ input[type='range']:focus-visible::-webkit-slider-thumb {
   border-color: var(--acc);
 }
 
+/* Tên node đích chỉ đọc, giữa ô phím và nút xoá (lô 12, AC-48 — thế chỗ ô
+   "Nhãn nhánh" xếp Bỏ ở CR 5.2, bản dựng thử dòng 588: flex:1; min-width:0). */
+.choice-target {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 400 14px/1.15 var(--sans);
+  color: var(--fg-3);
+}
+
+.choice-target[data-state='linked'] {
+  color: var(--fg-2);
+}
+
 .choice-remove {
   flex: none;
   width: 34px;

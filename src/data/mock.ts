@@ -21,6 +21,9 @@ export type QueueRecord = {
 export type StoredVersion = FlowVersionSummary & { document: FlowDocument };
 
 const FLOW_MAIN = "5c8ff6a1-4c0e-4a5b-9d2f-7a01b2c3d401";
+// FLOW_KEYMAP: kịch bản kiểm bản đồ phím — lô 12 (AC-48, TC-CALL-026).
+const FLOW_KEYMAP = "5c8ff6a1-4c0e-4a5b-9d2f-7a01b2c3d402";
+const VERSION_KEYMAP_DRAFT = "5c8ff6a1-4c0e-4a5b-9d2f-7a01b2c3d413";
 const VERSION_MAIN_ARCHIVED = "5c8ff6a1-4c0e-4a5b-9d2f-7a01b2c3d411";
 const VERSION_MAIN_PUBLISHED = "5c8ff6a1-4c0e-4a5b-9d2f-7a01b2c3d412";
 const DID_HOTLINE = "5c8ff6a1-4c0e-4a5b-9d2f-7a01b2c3d421";
@@ -166,12 +169,74 @@ const PUBLISHED_DOCUMENT: FlowDocument = {
   },
 };
 
+// Kịch bản kiểm bản đồ phím (lô 12): năm phím của keymap-menu trỏ năm loại
+// đích khác nhau — queue (có label), play (không label), hangup (label toàn
+// khoảng trắng), play (label 200 ký tự), hangup (sẽ bị xoá trong test để tái
+// tạo "phím trỏ id không có"). Nhánh còn lại (fallback, timeout, invalid,
+// nextNodeId của hai node play) trỏ keymap-blank — giữ tài liệu 0 lỗi lớp 1,
+// lớp 2, 0 cảnh báo (lot-brief lô 12, Quy ước chung).
+const KEYMAP_DOCUMENT: FlowDocument = {
+  schemaVersion: "1.1.0",
+  startNodeId: "keymap-start",
+  nodes: {
+    "keymap-start": {
+      type: "start",
+      label: "Bắt đầu",
+      nextNodeId: "keymap-menu",
+      fallbackNodeId: "keymap-blank",
+    },
+    "keymap-menu": {
+      type: "menu",
+      label: "Menu phím bấm",
+      promptMediaId: MEDIA_MENU_PROMPT,
+      choices: {
+        "1": "keymap-cskh",
+        "2": "keymap-nolabel",
+        "3": "keymap-blank",
+        "4": "keymap-long",
+        "5": "keymap-gone",
+      },
+      timeoutSeconds: 5,
+      onTimeoutNodeId: "keymap-blank",
+      onInvalidNodeId: "keymap-blank",
+    },
+    "keymap-cskh": { type: "queue", label: "Chuyển hàng đợi CSKH", queueRef: "support" },
+    "keymap-nolabel": { type: "play", mediaId: MEDIA_WELCOME, nextNodeId: "keymap-blank" },
+    "keymap-blank": { type: "hangup", label: "   " },
+    "keymap-long": {
+      type: "play",
+      label:
+        "Giới thiệu dịch vụ chăm sóc khách hàng cao cấp dành riêng cho nhóm khách hàng doanh nghiệp lớn, bao gồm hỗ trợ kỹ thuật 24 7, tư vấn giải pháp chuyên sâu và ưu đãi đặc biệt theo hợp đồng dài hạn đã ky",
+      mediaId: MEDIA_SERVICE_INFO,
+      nextNodeId: "keymap-blank",
+    },
+    "keymap-gone": { type: "hangup", label: "Kết thúc" },
+  },
+  canvas: {
+    positions: {
+      "keymap-start": { x: 0, y: 440 },
+      "keymap-menu": { x: 360, y: 440 },
+      "keymap-cskh": { x: 720, y: 0 },
+      "keymap-nolabel": { x: 720, y: 220 },
+      "keymap-blank": { x: 720, y: 440 },
+      "keymap-long": { x: 720, y: 660 },
+      "keymap-gone": { x: 720, y: 880 },
+    },
+  },
+};
+
 export const flowStore: FlowSummary[] = [
   {
     id: FLOW_MAIN,
     name: "Kịch bản chăm sóc khách hàng",
     publishedVersionId: VERSION_MAIN_PUBLISHED,
     updatedAt: "2026-09-10T09:30:00Z",
+  },
+  {
+    id: FLOW_KEYMAP,
+    name: "Kịch bản kiểm bản đồ phím",
+    publishedVersionId: null,
+    updatedAt: "2026-09-20T03:00:00Z",
   },
 ];
 
@@ -199,6 +264,18 @@ export const versionStore: StoredVersion[] = [
     name: "Đang triển khai chính",
     note: "Đủ sáu loại bước, đang chạy thật trên hotline 1900123456.",
     document: PUBLISHED_DOCUMENT,
+  },
+  {
+    id: VERSION_KEYMAP_DRAFT,
+    flowId: FLOW_KEYMAP,
+    versionNumber: 1,
+    status: "draft",
+    didId: null,
+    createdAt: "2026-09-20T03:00:00Z",
+    createdBy: "tran.thao@mitek.vn",
+    name: "Bản nháp",
+    note: "Kịch bản kiểm bản đồ phím — lô 12.",
+    document: KEYMAP_DOCUMENT,
   },
 ];
 
