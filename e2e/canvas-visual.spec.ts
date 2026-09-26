@@ -364,8 +364,9 @@ test.describe("canvas-visual", () => {
 
     await newMenuNode.click();
     await expect(page.locator('[data-testid="inspector"]')).toBeVisible();
-    await page.locator('[data-field="choices"] .inspector-choice-add select').selectOption("1");
-    await page.locator('[data-field="choices"] .inspector-choice-add button').click();
+    // Lô 11 — choice-add tự chọn phím trống đầu tiên (1–9, 0, *, #), không
+    // còn select riêng để chọn phím trước khi thêm (Quy ước chung lô 11).
+    await page.locator('[data-field="choices"] [data-testid="choice-add"]').click();
 
     const rows = newMenuNode.locator('[data-testid="node-branch"]');
     await expect(rows, "node menu mới phải có 3 hàng: Phím 1, Không bấm phím, Sai phím").toHaveCount(3);

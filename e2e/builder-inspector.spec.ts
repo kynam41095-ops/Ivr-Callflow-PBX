@@ -197,41 +197,11 @@ test.describe("builder-inspector", () => {
     }
   });
 
-  test("hồi quy — timeoutSeconds/maxRetries không bị parseInt cắt cụt số thập phân/số mũ", async ({
-    page,
-  }) => {
-    // Ca không mang mã TC — bảo vệ review BLOCKING iter 5: parseInt("2.9")
-    // ghi "2", parseInt("1e1") ghi "1" thay vì giữ nguyên hoặc chuyển "10".
-    // Dữ liệu giả lập node "menu": timeoutSeconds: 5, maxRetries: 1.
-    const inspector = page.locator('[data-testid="inspector"]');
-
-    async function selectMenuNode(): Promise<void> {
-      await deselectNode(page);
-      await page.locator('[data-id="queue"]').click();
-      await expect(inspector).toBeVisible();
-      await deselectNode(page);
-      await page.locator('[data-id="menu"]').click();
-      await expect(inspector).toBeVisible();
-    }
-
-    await selectMenuNode();
-    const maxRetriesBefore = await fieldControl(
-      inspector,
-      "maxRetries",
-    ).inputValue();
-
-    await fieldControl(inspector, "timeoutSeconds").fill("2.9");
-    await selectMenuNode();
-    await expect(fieldControl(inspector, "timeoutSeconds")).toHaveValue("5");
-
-    await fieldControl(inspector, "timeoutSeconds").fill("1e1");
-    await selectMenuNode();
-    await expect(fieldControl(inspector, "timeoutSeconds")).toHaveValue("10");
-
-    await fieldControl(inspector, "maxRetries").fill("2.9");
-    await selectMenuNode();
-    await expect(fieldControl(inspector, "maxRetries")).toHaveValue(
-      maxRetriesBefore,
-    );
-  });
+  // Ca hồi quy "timeoutSeconds/maxRetries không bị parseInt cắt cụt số thập
+  // phân/số mũ" (dùng .fill("2.9") trên input text) đã bỏ ở lô 11: từ
+  // TC-FLOW-036 (Change Request 5), timeoutSeconds/maxRetries là
+  // input[type=range] bước 1 — .fill("2.9") ném "Malformed value" trên
+  // range. AC-42/inspector-visual.spec.ts kiểm hành vi đổi giá trị theo
+  // số nguyên bằng phím mũi tên, thay cho ca này (lot-brief lô 11, mục
+  // "Test phải viết").
 });

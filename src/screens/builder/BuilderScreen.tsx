@@ -422,6 +422,31 @@ function BuilderInner({ flowId }: { flowId: string }) {
     );
   }, []);
 
+  // Đổi phím của Menu (Quy ước lô 11 "Đổi phím"): cạnh bám điểm nối cũ đổi
+  // sourceHandle và id → `e-<nodeId>-<handle mới>` theo quy ước toCanvas
+  // (src/flow/canvas.ts:61), giữ nguyên đích — chạy CÙNG LƯỢT với
+  // onDataChange của Inspector (React gộp hai setState trong một handler).
+  const renameBranchEdges = useCallback(
+    (nodeId: string, oldHandle: string, newHandle: string) => {
+      setEdges((current) =>
+        current.map((edge) =>
+          edge.source === nodeId && edge.sourceHandle === oldHandle
+            ? { ...edge, id: `e-${nodeId}-${newHandle}`, sourceHandle: newHandle }
+            : edge,
+        ),
+      );
+    },
+    [],
+  );
+
+  // Nút › của inspector — bỏ selected mọi node, khung đóng theo (Quy ước
+  // lô 11: onClose đặt ở BuilderScreen).
+  const clearSelection = useCallback(() => {
+    setNodes((current) =>
+      current.map((node) => (node.selected ? { ...node, selected: false } : node)),
+    );
+  }, []);
+
   // Lưu nháp: chụp tài liệu ĐỒNG BỘ trước await (bản chụp lúc bấm), busyRef
   // chặn lưu hai lần và chặn chạy chồng với khôi phục. Không ném, không để
   // Promise reject trôi thành pageerror.
@@ -919,6 +944,10 @@ function BuilderInner({ flowId }: { flowId: string }) {
             queues={queues}
             onDataChange={(data) => changeNodeData(selectedNode.id, data)}
             onBranchRemoved={(handle) => removeBranchEdges(selectedNode.id, handle)}
+            onBranchRenamed={(oldHandle, newHandle) =>
+              renameBranchEdges(selectedNode.id, oldHandle, newHandle)
+            }
+            onClose={clearSelection}
           />
         ) : null}
         {/* Drawer position: absolute trong .builder-body (position:relative,

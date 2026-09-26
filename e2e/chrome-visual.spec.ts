@@ -516,6 +516,63 @@ test.describe("chrome-visual", () => {
     expect(pageErrors, "0 sự kiện pageerror").toEqual([]);
     expect(consoleErrors, "0 console error").toEqual([]);
   });
+
+  test("TC-FLOW-029 (inspector, CR 5) — --sans mọi điều khiển trong inspector, trừ choice-key và [data-bound] của schedule-rule chữ --mono; không nền ButtonFace", async ({
+    page,
+  }) => {
+    const pageErrors: Error[] = [];
+    const consoleErrors: string[] = [];
+    listenErrors(page, pageErrors, consoleErrors);
+
+    await openBuilder(page);
+    const sans = await resolvedVar(page, "font-family", "--sans");
+    const mono = await resolvedVar(page, "font-family", "--mono");
+    const nativeButtonBg = await nativeButtonBackground(page);
+
+    async function checkInspectorControls(nodeId: string) {
+      await page.locator('.react-flow__pane').click({ position: { x: 5, y: 5 } });
+      await page.locator(`[data-id="${nodeId}"]`).click();
+      const inspector = page.locator('[data-testid="inspector"]');
+      await expect(inspector).toBeVisible();
+      // Drawer phiên bản đóng (đè canvas nếu mở) — inspector đo một mình.
+      await expect(page.locator('aside[data-testid="versions-drawer"]')).toBeHidden();
+
+      const controls = inspector.locator("button, input, select");
+      const count = await controls.count();
+      for (let i = 0; i < count; i += 1) {
+        const el = controls.nth(i);
+        if (!(await el.isVisible())) continue;
+        const testid = await el.getAttribute("data-testid");
+        const monoScope = await el.evaluate(
+          (node) =>
+            node.closest('[data-testid="choice-key"]') !== null ||
+            (node.closest('[data-testid="schedule-rule"]') !== null &&
+              node.closest("[data-bound]") !== null),
+        );
+        const font = await el.evaluate((node) => getComputedStyle(node).fontFamily);
+        if (testid === "choice-key" || monoScope) {
+          expect(font, `inspector[${nodeId}] control[${i}] (${testid}) phải --mono`).toBe(mono);
+        } else {
+          expect(font, `inspector[${nodeId}] control[${i}] (${testid}) phải --sans`).toBe(sans);
+        }
+      }
+
+      const buttons = inspector.locator("button");
+      const btnCount = await buttons.count();
+      for (let i = 0; i < btnCount; i += 1) {
+        const btn = buttons.nth(i);
+        if (!(await btn.isVisible())) continue;
+        const bg = await btn.evaluate((node) => getComputedStyle(node).backgroundColor);
+        expect(bg, `inspector[${nodeId}] button[${i}] không nền ButtonFace`).not.toBe(nativeButtonBg);
+      }
+    }
+
+    await checkInspectorControls("menu");
+    await checkInspectorControls("schedule");
+
+    expect(pageErrors, "0 sự kiện pageerror").toEqual([]);
+    expect(consoleErrors, "0 console error").toEqual([]);
+  });
 });
 
 async function checkSansAndButtons(

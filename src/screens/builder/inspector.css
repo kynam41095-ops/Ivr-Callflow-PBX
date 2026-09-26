@@ -1,0 +1,491 @@
+/* Khung inspector — lô 11. Chép style inline của bản dựng thử
+   IVR Builder v3.dc.html: dòng 398 (panel), 400–414 (đầu khung, nút ›),
+   404 (thân cuộn), 447–464 (ô tên, hàng mã/loại/id), 537–590 (trường, thanh
+   trượt), 591–608 (bản đồ phím), 466–500 + 1818–1845 (thẻ khung giờ),
+   113–116 (scrollbar), 119 (ivrIn), 123–129 (input[type=range]).
+   Phần tử CR 5.2 xếp Bỏ không có style ở đây: nút đầu khung, tay kéo, ⓘ,
+   Nhánh đi ra, Nhãn nhánh. */
+
+/* Panel (dòng 398): rộng 360px (panelPx mặc định, dòng 838), lề 12px 12px
+   12px 0, bo 12, nền --bg-raised, bóng --sh-2 (panelShadow không overlay,
+   dòng 1736). Là con của track `auto` trong .builder-body nên chỉ chiếm chỗ
+   khi có node chọn; không đụng fitView/viewport khi chọn node. */
+.builder-inspector {
+  box-sizing: border-box;
+  width: 360px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 12px 12px 12px 0;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  background: var(--bg-raised);
+  box-shadow: var(--sh-2);
+}
+
+/* Đầu khung (dòng 400): flex none, gap 8, đệm 12px 12px 8px. */
+.inspector-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 8px;
+}
+
+/* Tiêu đề (dòng 401). */
+.inspector-title {
+  flex: 1;
+  min-width: 0;
+  font: 550 11px/1.25 var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+
+/* Nút › đóng khung (dòng 414 — closePanel). */
+.inspector-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  cursor: pointer;
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);
+  color: var(--fg-2);
+  font: 450 14px/1.6 var(--sans);
+}
+
+.inspector-close:hover {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+/* Thân cuộn (dòng 404) + đệm nội dung 16px 20px 20px (dòng 447), vào bằng
+   ivrIn (dòng 119). Scrollbar theo dòng 113–116, phạm vi riêng vùng này. */
+.inspector-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px 20px;
+  animation: ivrIn 0.18s ease;
+}
+
+@keyframes ivrIn {
+  from {
+    transform: translateY(4px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.inspector-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.inspector-body::-webkit-scrollbar-thumb {
+  background: var(--bd);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.inspector-body::-webkit-scrollbar-thumb:hover {
+  background: var(--bd-str);
+}
+
+.inspector-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Ô tên (dòng 449). */
+.inspector-name {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  font: 650 16px/1.15 var(--sans);
+  letter-spacing: -0.01em;
+  color: var(--fg);
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 var(--bevel);
+}
+
+.inspector-name:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--acc-veil);
+}
+
+/* Hàng mã loại · tên loại · id (dòng 451–464). */
+.inspector-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.inspector-code {
+  flex: none;
+  box-sizing: border-box;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font: 650 12px/1.15 var(--mono);
+}
+
+.inspector-type {
+  flex: none;
+  font: 550 11px/1.25 var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.inspector-meta-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.inspector-node-id {
+  flex: none;
+  font-size: 12px;
+  font-weight: 450;
+  line-height: 1.5;
+  color: var(--fg-3);
+}
+
+/* Trường (fieldsFor dòng 1325–1367): gap 24px trường đầu, 22px trường
+   thường, 20px thanh trượt; khối Bản đồ phím / Khung giờ áp dụng 26px
+   (dòng 466, 591). */
+.inspector-field {
+  margin-top: 22px;
+}
+
+.inspector-field-first {
+  margin-top: 24px;
+}
+
+.inspector-field-range {
+  margin-top: 20px;
+}
+
+.inspector-block {
+  margin-top: 26px;
+}
+
+/* Nhãn trường (dòng 560): 550 11px in hoa --fg-3, cách điều khiển 6px. */
+.inspector-label {
+  display: block;
+  margin-bottom: 6px;
+  font: 550 11px/1.25 var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+/* Đầu khối (Bản đồ phím / Khung giờ áp dụng): nhãn trái, nút thêm phải
+   (dòng 468, 593). */
+.inspector-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inspector-block-head .inspector-label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.inspector-block-spacer {
+  flex: 1;
+}
+
+/* Nút "+ Phím" / "+ Khung giờ" (dòng 473, 598) — không bóng (bản dựng thử
+   không khai box-shadow, ghi đè bóng toàn cục của index.css). */
+.choice-add,
+.rule-add {
+  flex: none;
+  height: 26px;
+  padding: 0 9px;
+  cursor: pointer;
+  font: 550 11px/1 var(--sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.choice-add:hover:not(:disabled),
+.rule-add:hover:not(:disabled) {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+/* Select của trường (dòng 578): 38px, đệm 0 9px, chữ 14px. Class riêng —
+   không dùng `.inspector-field select` vì khối choices/rules cũng là
+   .inspector-field, select con của chúng có cỡ riêng. */
+.inspector-select {
+  width: 100%;
+  height: 38px;
+  padding: 0 9px;
+  font-size: 14px;
+  color: var(--fg);
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 var(--bevel);
+}
+
+.inspector-select:focus {
+  border-color: var(--acc);
+}
+
+/* Hàng thanh trượt (dòng 537–545): nhãn 14px --fg-2 trái, giá trị --mono
+   phải (chữ .num của index.css). */
+.inspector-range-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inspector-range-label {
+  min-width: 0;
+  font-size: 14px;
+  color: var(--fg-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.inspector-range-value {
+  flex: none;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.15;
+}
+
+.inspector-field-range input[type='range'] {
+  margin-top: 10px;
+}
+
+/* Track và thumb của thanh trượt — chép dòng 123–129 bản dựng thử (phần duy
+   nhất của input[type=range] không đặt inline được). */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-muted);
+  outline: none;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-raised);
+  border: 2px solid var(--acc);
+  box-shadow: var(--sh-1);
+  cursor: pointer;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-raised);
+  border: 2px solid var(--acc);
+  box-shadow: var(--sh-1);
+  cursor: pointer;
+}
+
+input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--acc-veil);
+}
+
+/* Bản đồ phím (dòng 600–608): hàng phím cách 6px, phím 44×34 chữ --mono,
+   nút × 34×34 ghim phải (ô Nhãn nhánh của bản dựng thử xếp Bỏ — CR 5.2). */
+.inspector-choice-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.choice-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.choice-key {
+  flex: none;
+  box-sizing: border-box;
+  width: 44px;
+  height: 34px;
+  padding: 0 8px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.15;
+  color: var(--fg);
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: 8px;
+}
+
+.choice-key:focus {
+  border-color: var(--acc);
+}
+
+.choice-remove {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  margin-left: auto;
+  padding: 0;
+  cursor: pointer;
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--fg-3);
+  font: 450 14px/1 var(--sans);
+}
+
+.choice-remove:hover:not(:disabled) {
+  background: var(--err-soft);
+  color: var(--err);
+  border-color: var(--err-bd);
+}
+
+/* Thẻ khung giờ (dòng 480–497): khung nền --bg-sub bo 10, đầu thẻ 34px
+   (tiêu đề + nút ×), thân đệm 10px 12px 12px, hàng trục nhãn trên
+   điều khiển dưới. */
+.inspector-rule-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.schedule-rule {
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  background: var(--bg-sub);
+  overflow: hidden;
+}
+
+.rule-head-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px 0 12px;
+  border-bottom: 1px solid var(--bd-sub);
+}
+
+/* Chiều cao 34px đo trên chính tiêu đề (hàng 34px trừ 1px viền đáy còn 33px
+   nội dung — tiêu đề giữ đúng 34 như ô đầu thẻ của bản dựng thử). */
+.rule-head {
+  flex: none;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  font: 550 11px/1.25 var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+
+.rule-remove {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-left: auto;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+  color: var(--fg-3);
+  font: 450 14px/1 var(--sans);
+}
+
+.rule-remove:hover {
+  background: var(--err-soft);
+  color: var(--err);
+}
+
+.rule-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rule-row-label {
+  font: 550 11px/1.25 var(--sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin-bottom: 5px;
+}
+
+.rule-row-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rule-arrow {
+  flex: none;
+  width: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+/* Điều khiển mốc của trục (dòng 490–496): 32px, chữ --mono 650 13px
+   tabular-nums (lớp .num), nền --bg-raised, viền --bd-str bo 6. */
+.rule-row-controls select,
+.rule-row-controls input[type='time'] {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.15;
+  color: var(--fg);
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 var(--bevel);
+}
+
+.rule-row-controls select:focus,
+.rule-row-controls input[type='time']:focus {
+  border-color: var(--acc);
+}
