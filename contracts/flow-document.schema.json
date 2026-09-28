@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mitek.vn/schemas/ivr/flow-document/1.1.0",
+  "title": "IVR Flow Document",
+  "description": "Tài liệu kịch bản IVR. Giao diện Builder lưu, executor nạp một lần lúc StasisStart. Trạng thái: Proposed — chưa hiện thực. Phạm vi đợt 1: Bắt đầu, Phát lời thoại, Menu phím bấm, Chuyển hàng đợi, Kết thúc. Đợt 2 thêm Điều kiện theo lịch. Thêm một loại bước là thêm một nhánh vào $defs.node.oneOf, không phải thêm giá trị vào một enum — schema này không có enum nào tên nodeType.",
+  "$comment": "Contract dùng chung, nằm ngoài mọi phase-NN. Design đang dùng: design-20260919-frontend-shell. Người duyệt khi đổi: Nam Hee. Đổi file này là đổi cam kết của mọi design đang link tới nó — grep tên file trong 30-designs/ trước khi sửa.",
+  "type": "object",
+  "required": ["schemaVersion", "startNodeId", "nodes"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "Phiên bản lược đồ này. Executor từ chối nạp phiên bản nó không hiểu thay vì đoán.",
+      "type": "string",
+      "const": "1.1.0"
+    },
+    "startNodeId": {
+      "description": "Phải trỏ tới đúng một node kiểu start.",
+      "$ref": "#/$defs/nodeId"
+    },
+    "nodes": {
+      "description": "Mọi bước của kịch bản, đánh khoá theo id. Không có node treo: mọi node trừ start phải được ít nhất một nhánh trỏ tới.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/nodeId" },
+      "additionalProperties": { "$ref": "#/$defs/node" }
+    },
+    "canvas": {
+      "description": "Toạ độ và trạng thái hiển thị của canvas. Executor bỏ qua hoàn toàn phần này.",
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "nodeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "mediaId": {
+      "description": "Định danh file âm thanh. Kiểm quyền sở hữu lúc ban hành: file phải thuộc tenant đang ban hành (FR-FLOW-006).",
+      "type": "string",
+      "format": "uuid"
+    },
+    "node": {
+      "oneOf": [
+        { "$ref": "#/$defs/startNode" },
+        { "$ref": "#/$defs/playNode" },
+        { "$ref": "#/$defs/menuNode" },
+        { "$ref": "#/$defs/queueNode" },
+        { "$ref": "#/$defs/hangupNode" },
+        { "$ref": "#/$defs/scheduleNode" }
+      ]
+    },
+    "startNode": {
+      "description": "Điểm vào của cuộc gọi. Đúng một node kiểu này mỗi kịch bản. fallbackNodeId là nhánh dự phòng lớp 1 — chạy khi một bước lỗi trong lúc executor còn sống (FR-CALL-007). Nó KHÔNG xử lý được trường hợp executor sập; lớp đó nằm ở dialplan, ngoài tài liệu này.",
+      "type": "object",
+      "required": ["type", "nextNodeId", "fallbackNodeId"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "start" },
+        "label": { "type": "string", "maxLength": 200 },
+        "nextNodeId": { "$ref": "#/$defs/nodeId" },
+        "fallbackNodeId": { "$ref": "#/$defs/nodeId" }
+      }
+    },
+    "playNode": {
+      "description": "Phát một file âm thanh rồi đi tiếp (FR-CALL-003).",
+      "type": "object",
+      "required": ["type", "mediaId", "nextNodeId"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "play" },
+        "label": { "type": "string", "maxLength": 200 },
+        "mediaId": { "$ref": "#/$defs/mediaId" },
+        "nextNodeId": { "$ref": "#/$defs/nodeId" }
+      }
+    },
+    "menuNode": {
+      "description": "Phát lời nhắc, chờ một chữ số, rẽ nhánh theo phím (FR-CALL-004). Bắt buộc có cả nhánh không bấm lẫn nhánh bấm sai — hai tình huống chắc chắn xảy ra trên cuộc gọi thật.",
+      "type": "object",
+      "required": ["type", "promptMediaId", "choices", "timeoutSeconds", "onTimeoutNodeId", "onInvalidNodeId"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "menu" },
+        "label": { "type": "string", "maxLength": 200 },
+        "promptMediaId": { "$ref": "#/$defs/mediaId" },
+        "choices": {
+          "description": "Phím bấm -> node đích. Một chữ số mỗi phím.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "pattern": "^[0-9*#]$" },
+          "additionalProperties": { "$ref": "#/$defs/nodeId" }
+        },
+        "timeoutSeconds": {
+          "description": "Thời hạn chờ phím sau khi lời nhắc phát xong. Giá trị mặc định là [đề xuất], chưa đo trên người dùng thật.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 5
+        },
+        "maxRetries": {
+          "description": "Số lần lặp lại lời nhắc trước khi đi theo nhánh tương ứng. 0 nghĩa là không lặp.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "default": 1
+        },
+        "onTimeoutNodeId": { "$ref": "#/$defs/nodeId" },
+        "onInvalidNodeId": { "$ref": "#/$defs/nodeId" }
+      }
+    },
+    "queueNode": {
+      "description": "Bàn giao cuộc gọi cho hàng đợi của tenant (FR-CALL-006). KHÔNG có cổng ra: bàn giao là dứt điểm, kịch bản kết thúc ở đây (Ràng buộc 15). Hàng đợi phải nằm trong phần đã khai báo cho tenant, kiểm ở phía máy chủ lúc ban hành (FR-PBX-003).",
+      "type": "object",
+      "required": ["type", "queueRef"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "queue" },
+        "label": { "type": "string", "maxLength": 200 },
+        "queueRef": {
+          "description": "Tên hàng đợi trên tổng đài của tenant.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "hangupNode": {
+      "description": "Cúp máy (FR-CALL-005). Không có cổng ra.",
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "hangup" },
+        "label": { "type": "string", "maxLength": 200 }
+      }
+    },
+    "scheduleNode": {
+      "description": "Điều kiện theo lịch: rẽ nhánh theo thời điểm cuộc gọi đến (FR-CALL-011, đợt 2). HAI nhánh ra, nhãn giao diện: Trong giờ, Ngoài giờ. Cuộc gọi khớp BẤT KỲ khung nào trong rules thì đi nhánh Trong giờ; không khớp khung nào thì đi nhánh Ngoài giờ. Node ôm trực tiếp cấu hình lịch, không trỏ tới bảng giờ cấp tenant — Ràng buộc 8 của design-20260919-frontend-shell, sửa bởi Change Request 1 mục 1.1 của cùng tài liệu đó. Ngày nghỉ lễ khai bằng một khung riêng có ngày, tháng và năm cụ thể; không có nhánh Nghỉ lễ riêng. TRẠNG THÁI: Proposed, chưa hiện thực. Lệch đã biết với câu chữ FR-CALL-011 ('bảng giờ của tenant', 'tenant admin tự khai bảng giờ') ghi ở 1-intent.md mục Phản biện 4 — phải xem lại khi mở đợt 2. Kiểm tra hợp lệ lúc ban hành ở đợt 1 phải TỪ CHỐI kịch bản chứa node này (Ràng buộc 9); luật đó không diễn đạt được bằng JSON Schema nên nằm ở phía máy chủ, xem builder-api.yaml.",
+      "type": "object",
+      "required": ["type", "timezone", "rules", "onOpenNodeId", "onClosedNodeId"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "schedule" },
+        "label": { "type": "string", "maxLength": 200 },
+        "timezone": {
+          "description": "Múi giờ dùng để so khớp. Tên vùng IANA. Bản dựng thử đưa ba lựa chọn: Asia/Ho_Chi_Minh, Asia/Bangkok, UTC — schema không khoá vào ba giá trị đó vì danh sách là việc của giao diện, không phải của hợp đồng.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "rules": {
+          "description": "Danh sách khung thời gian. Cuộc gọi khớp BẤT KỲ khung nào thì tính là trong giờ — quan hệ giữa các khung là HOẶC. Trong một khung, mọi trục có mặt phải cùng khớp — quan hệ giữa các trục là VÀ. Trục vắng mặt nghĩa là không giới hạn ở trục đó, tương ứng dấu '—' của bản dựng thử.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/scheduleRule" }
+        },
+        "onOpenNodeId": { "$ref": "#/$defs/nodeId" },
+        "onClosedNodeId": { "$ref": "#/$defs/nodeId" }
+      }
+    },
+    "scheduleRule": {
+      "description": "Một khung thời gian, ấn định mốc đầu và mốc cuối trên tối đa năm trục. Chỉ trục 'time' bắt buộc; bốn trục còn lại vắng mặt nghĩa là không giới hạn. Mọi khoảng đều tính CẢ hai đầu mút.",
+      "type": "object",
+      "required": ["time"],
+      "additionalProperties": false,
+      "properties": {
+        "time": {
+          "description": "Khung giờ trong ngày. Bản dựng thử cho chọn giờ 00-23 và phút theo bước 5 phút; schema không khoá bước phút vì đó là ràng buộc của giao diện. Ý nghĩa khi from bằng to, và khi from lớn hơn to (khung vắt qua nửa đêm, ví dụ ca trực đêm 22:00-06:00): CHƯA CHỐT, xem 2-design.md câu hỏi mở D4. Schema không cưỡng chế quan hệ nào giữa hai trường.",
+          "type": "object",
+          "required": ["from", "to"],
+          "additionalProperties": false,
+          "properties": {
+            "from": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
+            "to": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
+          }
+        },
+        "weekday": {
+          "description": "Khoảng thứ trong tuần. 1 là thứ Hai, 7 là Chủ nhật (ISO-8601). Bản dựng thử hiển thị T2..T7 và CN.",
+          "type": "object",
+          "required": ["from", "to"],
+          "additionalProperties": false,
+          "properties": {
+            "from": { "type": "integer", "minimum": 1, "maximum": 7 },
+            "to": { "type": "integer", "minimum": 1, "maximum": 7 }
+          }
+        },
+        "monthDay": {
+          "description": "Khoảng ngày trong tháng.",
+          "type": "object",
+          "required": ["from", "to"],
+          "additionalProperties": false,
+          "properties": {
+            "from": { "type": "integer", "minimum": 1, "maximum": 31 },
+            "to": { "type": "integer", "minimum": 1, "maximum": 31 }
+          }
+        },
+        "month": {
+          "description": "Khoảng tháng. 1 là tháng Một.",
+          "type": "object",
+          "required": ["from", "to"],
+          "additionalProperties": false,
+          "properties": {
+            "from": { "type": "integer", "minimum": 1, "maximum": 12 },
+            "to": { "type": "integer", "minimum": 1, "maximum": 12 }
+          }
+        },
+        "year": {
+          "description": "Khoảng năm. Dùng để giới hạn một khung vào một đợt duy nhất thay vì lặp lại hằng năm — đây là cách khai ngày nghỉ lễ của một năm cụ thể.",
+          "type": "object",
+          "required": ["from", "to"],
+          "additionalProperties": false,
+          "properties": {
+            "from": { "type": "integer", "minimum": 2000, "maximum": 2999 },
+            "to": { "type": "integer", "minimum": 2000, "maximum": 2999 }
+          }
+        }
+      }
+    }
+  }
+}
