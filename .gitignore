@@ -3,3 +3,11 @@ dist/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Công cụ/ghi chú chỉ tồn tại trên máy dev, không thuộc repo
+/.agents/
+/.claude/
+/.codegraph/
+/.dsh/
+/.obsidian/
+/.omp/
