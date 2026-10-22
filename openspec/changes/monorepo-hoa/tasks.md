@@ -44,7 +44,7 @@
 
 - [x] 6.1 Chạy toàn bộ kiểm từ trạng thái sạch: `docker compose --profile test run --rm frontend-test npm test` xanh (64 unit + 81 e2e) và `docker build` thành công. Kiểm: log hai lệnh, không có `failed`.
 - [x] 6.2 Kiểm không còn tham chiếu đường dẫn cũ trong repo: `grep -rn "frontend/contracts\|docs/30-designs" --include=*.ts --include=*.yaml --include=*.md .` chỉ còn trong `openspec/changes/**` là lịch sử. Kiểm: kết quả nằm ngoài `services/`.
-- [ ] 6.3 Đẩy monorepo lên `origin` (`https://gitlab19.mitek.vn/ivr-callflow-pbx/app-business.git`) và đánh dấu remote `frontend`, `docs` chỉ đọc. Kiểm: `git push -u origin main` fast-forward từ `e01442f` (không cần `--force`); `git remote -v` chỉ còn `origin` trỏ `app-business`.
+- [x] 6.3 Đẩy monorepo lên `origin` (`https://gitlab19.mitek.vn/ivr-callflow-pbx/app-business.git`) và đánh dấu remote `frontend`, `docs` chỉ đọc. Kiểm: `git push -u origin main` fast-forward từ `e01442f` (không cần `--force`); `git remote -v` chỉ còn `origin` trỏ `app-business`.
 
 ## Workflow follow-up
 
