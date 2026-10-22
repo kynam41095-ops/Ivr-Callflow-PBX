@@ -18,8 +18,8 @@ Drawer phiên bản SHALL liệt kê mọi phiên bản của kịch bản theo 
 
 #### Scenario: Nhãn trạng thái đúng
 
-- **WHEN** drawer hiện một phiên bản đã ban hành và một phiên bản nháp
-- **THEN** phiên bản đã ban hành mang nhãn `Đang chạy`, phiên bản nháp mang nhãn `Nháp`
+- **WHEN** drawer hiện một phiên bản đang chạy và một phiên bản nháp
+- **THEN** phiên bản đang chạy mang nhãn `Đang chạy`, phiên bản nháp mang nhãn `Nháp`
 
 ### Requirement: Lỗi đọc danh sách phiên bản có đường thử lại
 

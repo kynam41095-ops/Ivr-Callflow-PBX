@@ -13,7 +13,7 @@ Khi người dùng chọn một node, inspector SHALL hiện tiêu đề, mã no
 #### Scenario: Chọn bước Phát lời thoại
 
 - **WHEN** người dùng bấm vào node Phát lời thoại
-- **THEN** inspector hiện trường chọn file âm thanh từ danh mục file của tenant
+- **THEN** inspector hiện trường chọn file âm thanh từ danh mục file âm thanh đang có
 
 #### Scenario: Chọn bước Chuyển hàng đợi
 

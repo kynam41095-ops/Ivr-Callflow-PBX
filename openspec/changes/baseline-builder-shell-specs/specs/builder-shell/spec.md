@@ -28,7 +28,7 @@
 
 ### Requirement: Nạp dữ liệu trình dựng
 
-Trình dựng SHALL tải đồng thời danh sách phiên bản, file âm thanh, hàng đợi, đầu số và kịch bản của tenant, rồi mở lên canvas phiên bản được chỉ định, hoặc phiên bản có số lớn nhất nếu không chỉ định. Kịch bản không có phiên bản nào SHALL được coi là lỗi nạp.
+Trình dựng SHALL tải đồng thời danh sách phiên bản, file âm thanh, hàng đợi, đầu số và kịch bản đang có trong dữ liệu, rồi mở lên canvas phiên bản được chỉ định, hoặc phiên bản có số lớn nhất nếu không chỉ định. Kịch bản không có phiên bản nào SHALL được coi là lỗi nạp.
 
 #### Scenario: Nạp thành công
 
