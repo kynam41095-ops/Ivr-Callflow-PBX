@@ -1,0 +1,781 @@
+/* .builder không còn dùng chung chiều cao với .app-header (bỏ ở lô 9,
+   CR 4.2) — chiếm trọn viewport. .builder-body là "khối thân" position:
+   relative của palette/canvas/inspector — drawer phiên bản định vị absolute
+   trong đây (versions.css), cạnh phải KHÔNG có lề để trùng cạnh phải cửa sổ
+   (AC-35). */
+.builder {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 30rem;
+}
+
+/* Dòng 278 bản dựng thử: một hàng, wrap, đệm 8px 16px. Con co giãn DUY NHẤT
+   là .builder-name (dòng 280: flex:1;min-width:150px) — nó đứng ngay sau nút
+   về-danh-sách và TRƯỚC mọi phần tử bề rộng cố định, nên hút hết khoảng thừa
+   của hàng; nhóm nút .builder-actions ghim phải bằng margin-left:auto. Hai
+   việc đó cộng lại giữ nguyên lỗi dblclick cũ ở trạng thái đã sửa: thông báo
+   (save-status, validate-result, pick-error, new-flow-error) đã rời hàng xuống
+   .canvas-hud nên không còn sibling nào đổi độ rộng nội dung lúc bấm lưu, và
+   mép phải của nhóm nút không phụ thuộc bề rộng phần tử đứng trước nó. */
+.builder-toolbar {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--bd);
+  background: var(--bg-raised);
+}
+
+.builder-toolbar > * {
+  flex: none;
+}
+
+/* Khối tên hai dòng (dòng 280-286 bản dựng thử) — ghi đè flex:none ở trên. */
+.builder-toolbar > .builder-name {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 2px;
+}
+
+.builder-name-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Dòng phụ: provider · kind của đầu số (dòng 285 bản dựng thử). Không có đầu
+   số thì không render — hàng đầu trang vẫn một hàng. */
+.builder-meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--fg-2);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+/* Nhóm ghim phải (dòng 295 bản dựng thử): dirty-status · validate · save-draft
+   · new-flow. */
+.builder-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Cột inspector là track `auto` — không có con (không node chọn) thì rộng 0,
+   canvas chiếm trọn phần còn lại; có Inspector thì track nở theo width 19rem
+   của nó (lô 9, Quy ước "cột inspector chỉ có khi có node chọn"). Cột palette
+   cũng `auto` — bề rộng do .builder-palette quyết theo data-state (56px thu
+   gọn / 236px mở, dòng 1680 bản dựng thử). Không gap, không padding: palette
+   sát mép trái, canvas sát palette (bản dựng thử 314-354). */
+.builder-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+/* Dòng 279 bản dựng thử: ô 32×32 giống nút icon, chữ "←" thay cho liên kết
+   chữ gạch chân — vẫn là thẻ <a> (giữ testid nav-numbers cho spec ngoài
+   allowlist). */
+.builder-nav-numbers {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1.15;
+  color: var(--fg-2);
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: 8px;
+  text-decoration: none;
+  box-shadow: inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);
+}
+
+.builder-nav-numbers:hover {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.builder-number {
+  font-weight: 650;
+  font-size: 14px;
+  line-height: 1.15;
+}
+
+/* item co giãn theo phần thừa của hàng là nguồn gây lỗi thật: mọi lần
+   sibling PHÍA SAU đổi độ rộng nội dung (vd save-status hiện "Đang lưu…") ép
+   flow-name co lại, đẩy CẢ CÁC NÚT phía sau nó (validate, save-draft,
+   new-flow…) dịch trái — dblclick vào save-draft ăn sang new-flow đúng lúc
+   save-status đổi chữ. `.builder-toolbar > *{flex:none}` đã phủ mọi con
+   trực tiếp; max-width cố định + ellipsis vẫn cắt tên dài mà không phụ
+   thuộc khoảng trống còn lại của hàng. */
+.builder-flow-name {
+  max-width: 16rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--fg-2);
+}
+
+/* Dòng 287 bản dựng thử: cao 32px, đệm 0 8px, viền --bd-str, bo 8px, chữ
+   650 14px/1.15 --mono. CR 5 bỏ ngoại lệ AC-36: version-select nay mang lớp
+   .num (src/index.css) cho --mono + tabular-nums như bản dựng thử, ở đây chỉ
+   còn cỡ/đệm/viền. */
+.builder-version-select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--bd-str);
+  border-radius: 8px;
+  font-size: var(--fs-base);
+  font-weight: 650;
+  line-height: 1.15;
+  background: var(--bg-raised);
+  color: var(--fg);
+  box-shadow: inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);
+}
+
+.builder-version-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  font-weight: 550;
+  font-size: var(--fs-label);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.builder-version-status .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Dòng 296 bản dựng thử: font 650 14px/1.15 --mono — .num (src/index.css)
+   đã cho font-family/tabular-nums, ở đây chỉ thêm weight/size dạng longhand
+   (review BLOCKING "dirty-status không dùng chữ --mono như §3.9"). */
+.builder-dirty-status {
+  font-weight: 650;
+  font-size: 14px;
+  line-height: 1.15;
+  color: var(--fg-2);
+}
+
+.builder-dirty-status[data-state="unsaved"] {
+  color: var(--warn);
+}
+
+.builder-pick-error {
+  color: var(--err);
+  font-size: var(--fs-sm);
+}
+
+/* Dòng 293 bản dựng thử: MỌI nút đầu trang cao 32px, đệm 0 12px, chữ 550,
+   viền --bd-str, bo 8px — không chỉ riêng "Phiên bản · N" (review MINOR "Ba nút
+   cuối đầu trang không cùng kiểu nút Phiên bản"). */
+.builder-toolbar button {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--bd-str);
+  border-radius: 8px;
+  font-size: var(--fs-base);
+  font-weight: 550;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);
+}
+
+.builder-toolbar button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Nút ghi chính của đầu trang — như nút Publish dòng 302 bản dựng thử: nền
+   --acc, viền --acc, bóng --sh-1 (AC-34: save-draft nền --acc). Selector kèm
+   .builder-toolbar để (0,2,0) thắng .builder-toolbar button (0,1,1) — nếu
+   không, border/box-shadow của nút thường ghi đè mất viền --acc và bóng
+   (review MINOR lô 10). */
+.builder-toolbar .builder-save-draft {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: var(--acc-fg);
+  box-shadow: var(--sh-1);
+}
+
+.builder-save-draft:hover:not(:disabled) {
+  background: var(--acc-hov);
+}
+
+.builder-save-status {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+
+/* Thông báo rỗng không chiếm chỗ trong .canvas-hud — hàng flex vẫn tính gap
+   cho một item rỗng nên phải bỏ hẳn khỏi luồng (Quy ước chung lô 10). */
+.builder-save-status[data-state="idle"] {
+  display: none;
+}
+
+.builder-save-status[data-state="error"] {
+  color: var(--err);
+}
+
+.builder-validate-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+}
+
+.builder-validate-result[data-valid="false"] > .builder-validate-summary {
+  color: var(--err);
+}
+
+.builder-validate-issue {
+  padding: 0.125rem 0.375rem;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-sm);
+}
+
+.builder-validate-issue[data-severity="error"] {
+  color: var(--err);
+}
+
+.builder-validate-issue[data-severity="warning"] {
+  color: var(--warn);
+}
+
+.builder-new-flow-error {
+  color: var(--err);
+  font-size: var(--fs-sm);
+}
+
+/* Dòng 316, 1680-1683 bản dựng thử: palette nền --bg-raised, viền phải --bd
+   ngăn với canvas, bề rộng do trạng thái quyết (mở 236px / thu 56px), overflow
+   hidden khi mở và visible khi thu. Đầu trang + danh sách là hai khối con:
+   danh sách mới là phần cuộn. */
+.builder-palette {
+  box-sizing: border-box;
+  width: 236px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--bd);
+  background: var(--bg-raised);
+  z-index: 5;
+}
+
+.builder-palette[data-state="collapsed"] {
+  width: 56px;
+  overflow: visible;
+}
+
+/* Dòng 317 bản dựng thử: hàng tiêu đề + nút thu/mở. */
+.palette-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px 8px;
+}
+
+/* Dòng 319 bản dựng thử: tiêu đề "Thư viện node" in hoa, 550 11px, --fg-2 —
+   chỉ render khi mở. */
+.palette-title {
+  flex: 1;
+  min-width: 0;
+  padding-left: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 550 11px/1.25 var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+
+/* Dòng 321 bản dựng thử: nút icon 32×32 cùng kiểu nút đầu trang. */
+.palette-toggle {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--fg-2);
+  background: var(--bg-raised);
+  border: 1px solid var(--bd-str);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 var(--bevel), inset 0 -1px 0 var(--bevel-under);
+}
+
+.palette-toggle:hover {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+/* Dòng 330, 1681-1682 bản dựng thử: vùng danh sách cuộn dọc, đệm theo trạng
+   thái; khi thu để overflow visible (không có gì tràn ngang, giữ nguyên bản
+   dựng thử). */
+.palette-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 12px 16px;
+}
+
+.builder-palette[data-state="collapsed"] .palette-list {
+  overflow: visible;
+  padding: 0 8px 16px;
+}
+
+/* Dòng 332 bản dựng thử: nhóm cách nhau 10px. */
+.palette-group {
+  margin-top: 10px;
+}
+
+/* Dòng 334 bản dựng thử: tên nhóm 550 14px/1.6 --fg-2, đệm 0 2px 4px — chỉ
+   render khi mở. */
+.palette-group-name {
+  padding: 0 2px 4px;
+  color: var(--fg-2);
+  font-weight: 550;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Dòng 337 bản dựng thử: thu gọn thì vạch 1px ngăn nhóm thay cho tên nhóm. */
+.palette-group-sep {
+  height: 1px;
+  margin: 0 4px 6px;
+  background: var(--bd);
+}
+
+/* Dòng 339 bản dựng thử: các mục trong nhóm cách nhau 4px. */
+.palette-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Dòng 341, 1684-1685 bản dựng thử: mục mở thì đệm 8px canh trái, thu thì
+   đệm 8px 0 canh giữa (chỉ còn mã). */
+.builder-palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-btn);
+  background: var(--bg-raised);
+  color: var(--fg);
+  font-size: var(--fs-base);
+  cursor: grab;
+  user-select: none;
+}
+
+.builder-palette[data-state="collapsed"] .builder-palette-item {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.builder-palette-item:hover {
+  background: var(--bg-sub);
+  border-color: var(--bd-str);
+}
+
+/* Dòng 788, 132-133 bản dựng thử: nhãn nổi position:fixed nền --fg chữ --bg,
+   mũi tên trái 5px vẽ bằng ::before. Toạ độ đặt inline từ bounding rect của
+   mục (dòng 1700-1702). */
+.palette-tooltip {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  background: var(--fg);
+  color: var(--bg);
+  box-shadow: var(--sh-2);
+  font: 450 12px/1.55 var(--sans);
+  white-space: nowrap;
+}
+
+.palette-tooltip::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: var(--fg);
+}
+
+.palette-code {
+  flex: none;
+  box-sizing: border-box;
+  min-width: 28px;
+  height: 19px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  font: 650 14px/1.15 var(--mono);
+}
+
+.palette-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 550 14px/1.6 var(--sans);
+}
+
+/* Dòng 354 bản dựng thử: canvas sát liền palette, không viền, không bo góc. */
+.builder-canvas {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-canvas);
+}
+
+/* HUD góc trên trái canvas (Quy ước chung lô 10): canvas-status rồi tới mọi
+   thông báo, hàng wrap gap 8. pointer-events:none để không chắn thao tác trên
+   canvas; z-index nổi trên ErrorState (phase error vẫn có hud). */
+.canvas-hud {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  pointer-events: none;
+}
+
+/* Thanh trạng thái canvas (AC-34) — hiện trực tiếp từ collectIssues trên tài
+   liệu hiện tại, không cần bấm Kiểm tra hợp lệ. Định vị do .canvas-hud giữ. */
+/* Dòng 362 bản dựng thử: gap 8px, padding 0 12px, chữ --fg-2 (số liệu không
+   còn dính vào dấu · và không còn màu đen — review BLOCKING). */
+.canvas-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--bd);
+  border-radius: var(--r-pill);
+  background: var(--glass);
+  color: var(--fg-2);
+  font-weight: 650;
+  font-size: 14px;
+  line-height: 1.15;
+}
+
+.canvas-status-sep {
+  color: var(--fg-3);
+}
+
+.canvas-status-ok {
+  color: var(--ok);
+}
+
+.canvas-status-warn {
+  color: var(--warn);
+}
+
+/* Chép nguyên ivr-flow-themed.js:108-110, 171-172, 174, 187 dưới
+   .builder-canvas (review vòng 2 lô 6 MINOR + review vòng 3 lô 7 MINOR,
+   lot-brief "Chép dòng 108 …, 109–110, 154, 171–172, 174, 187"). */
+.builder-canvas .react-flow__attribution {
+  background: transparent;
+  font-size: 9px;
+}
+
+.builder-canvas .react-flow__attribution a {
+  color: var(--fg-3);
+  text-decoration: none;
+}
+
+.builder-canvas .react-flow__controls {
+  box-shadow: var(--sh-1);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.builder-canvas .react-flow__controls-button {
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--bd);
+  width: 28px;
+  height: 28px;
+  fill: var(--fg-2);
+  box-shadow: none;
+}
+
+.builder-canvas .react-flow__controls-button:hover {
+  background: var(--bg-muted);
+}
+
+.builder-canvas .react-flow__minimap {
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.builder-canvas .react-flow__edge-path {
+  stroke-linecap: round;
+}
+
+.builder-canvas .react-flow__connectionline path {
+  stroke: var(--acc);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+
+.builder-loading {
+  margin: 0;
+  padding: 1rem;
+  color: var(--fg-2);
+  font-size: var(--fs-base);
+}
+
+/* Thẻ node — hình dạng bám bản dựng thử ivr-flow-themed.js:123-187
+   (.ivrn*), đổi tên lớp cho khớp data-testid của lô 7. --k-stroke đặt trên
+   node-card, đổi theo loại node (tokenSuffix) — một biến, mọi con kế thừa. */
+.node-card {
+  position: relative;
+  box-sizing: border-box;
+  width: 284px;
+  border-radius: var(--r-lg);
+  font-family: var(--sans);
+  background: var(--bg-raised);
+  border: 1.5px solid var(--bd);
+  box-shadow: var(--sh-2);
+}
+
+.node-card.is-selected {
+  border-color: var(--acc-line);
+  box-shadow: 0 0 0 2px var(--acc-veil), var(--sh-2);
+}
+
+.node-card.is-warn {
+  border-color: var(--warn-bd);
+}
+
+.node-bar {
+  height: 6px;
+  border-radius: 12px 12px 0 0;
+  background: var(--k-stroke);
+}
+
+.node-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 12px;
+}
+
+.node-icon {
+  flex: none;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--k-stroke);
+  display: grid;
+  place-items: center;
+  color: var(--k-stroke);
+}
+
+.node-title {
+  flex: 1;
+  min-width: 0;
+  font: 650 14px/28px var(--sans);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--fg);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.node-summary {
+  padding: 0 14px 12px;
+  font: 450 12px/16px var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.node-branches {
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.node-branch {
+  position: relative;
+  box-sizing: border-box;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--bg-sub);
+}
+
+.handle-label {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  font: 550 13px/34px var(--sans);
+  color: var(--fg-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.node-dot {
+  flex: none;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ok-dot);
+}
+
+/* Trạng thái nhánh (lot-brief lô 7): fallback luôn báo lỗi bất kể đã nối
+   hay chưa; linked = có cạnh; open = chưa nối, chấm rỗng viền cảnh báo. */
+.node-branch[data-state="fallback"] .handle-label {
+  color: var(--err);
+}
+
+.node-branch[data-state="fallback"] .node-dot {
+  background: var(--err-dot);
+}
+
+.node-branch[data-state="open"] .node-dot {
+  background: transparent;
+  border: 1.5px solid var(--warn-bd);
+}
+
+.node-branch[data-state="open"] .handle-label {
+  color: var(--fg-3);
+}
+
+/* Handle trong thẻ — chép .ivrh, .ivrh.on, .fb .ivrh, .ivrh-t, .ivrh-s
+   (ivr-flow-themed.js:162-169). Nguồn ra ngoài mép phải thẻ (right:-19px),
+   không nằm đè lên node-branch (review vòng 3 lô 7 BLOCKING). */
+.node-handle {
+  width: 11px;
+  height: 11px;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 50%;
+  border: 2px solid var(--bg-raised);
+  background: var(--bg-raised);
+  box-shadow: 0 0 0 1.5px var(--bd-str);
+}
+
+.node-handle.on {
+  background: var(--k-stroke);
+  box-shadow: 0 0 0 1px var(--k-stroke);
+}
+
+.node-branch[data-state="fallback"] .node-handle {
+  background: var(--err-dot);
+  box-shadow: 0 0 0 1px var(--err-dot);
+}
+
+.node-handle:hover {
+  transform: scale(1.25);
+}
+
+.node-handle-target {
+  left: -6px;
+  top: 27px;
+}
+
+/* node-handle-target dịch (-50%,-50%) qua @xyflow/react (điểm nối đích canh
+   giữa theo tâm) — rule .node-handle:hover chung ở trên ghi đè mất phần dịch
+   đó, điểm nối nhảy 5,5px khi hover (review MINOR lô 7). */
+.node-handle-target:hover {
+  transform: translate(-50%, -50%) scale(1.25);
+}
+
+.node-handle-source {
+  right: -19px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.node-handle-source:hover {
+  transform: translateY(-50%) scale(1.25);
+}
+
+.node-foot {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--warn-bd);
+  border-radius: 0 0 12px 12px;
+  background: var(--warn-soft);
+  color: var(--warn);
+  font: 550 11px/1.25 var(--sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.builder-node-issue {
+  margin: 0.25rem 12px 0;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+}
+
+.builder-node-issue[data-severity="error"] {
+  border: 1px solid var(--err);
+  color: var(--err);
+}
+
+.builder-node-issue[data-severity="warning"] {
+  border: 1px solid var(--warn);
+  color: var(--warn);
+}
+
+/* Style của khung inspector (cột `auto` thứ ba của .builder-body — chỉ chiếm
+   chỗ khi có node chọn) nằm ở inspector.css, lô 11. */
