@@ -1,0 +1,29 @@
+schema: spec-driven
+
+# Project context — chỉ ghi ràng buộc mà agent không tự suy ra khi đọc code.
+context: |
+  Monorepo IVR-Callflow-PBX: mỗi service nằm ở services/<service>/ và KHÔNG có git riêng —
+  chỉ repo gốc có .git. Không chạy git init hay tạo .git trong thư mục service.
+
+  Mỗi service build bằng Dockerfile riêng với build context là gốc repo (để lấy contracts/).
+  Ứng dụng dựng bằng compose.yaml; test chạy qua profile `test`.
+
+  Contract dùng chung ở contracts/ tại gốc repo, một bản duy nhất; service import trực tiếp,
+  không chép bản sao vào service.
+
+  Nội dung tự nhiên (spec, tài liệu, commit message) viết tiếng Việt UTF-8 có dấu; giữ nguyên
+  tên file, identifier và thuật ngữ kỹ thuật.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+
+# Per-operation guidance (optional)
+operations:
+  apply:
+    guidance:
+      - "Chạy kiểm bằng container: docker compose --profile test run --rm frontend-test npm test"
+      - "Sau khi sửa mã, kiểm thêm: docker compose build frontend"

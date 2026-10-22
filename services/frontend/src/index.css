@@ -1,0 +1,35 @@
+/* Style gốc chép từ dòng 92–112 của IVR Builder v3.dc.html (bản dựng thử,
+   phase-00/design-20260919-frontend-shell), kéo ngày 24/09/2026. Ba chỗ lệch
+   có chủ đích so với bản dựng thử:
+   1. bỏ `overflow: hidden` trên html/body — app này cuộn theo tài liệu, không
+      khoá viewport như bản dựng thử (khoá là mất khả năng đọc trên màn nhỏ);
+   2. giữ `color-scheme: light` — Ràng buộc 11, chỉ chủ đề sáng, không nút đổi;
+   3. nút trần lấy thêm `background: var(--bg-raised)`, `box-shadow: var(--sh-1)`
+      và hover `--bg-muted` từ dòng 232, để mọi nút — kể cả nút chưa có style
+      theo màn — hết nền ButtonFace mặc định của trình duyệt.
+   `.num` chỉ định nghĩa ở đây; lô 8/9 mới gắn vào JSX. */
+  :root { color-scheme: light; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--sans);
+    font-size: 14px; font-weight: 450; line-height: 1.6; letter-spacing: -0.005em;
+    font-synthesis: none; text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  *, *::before, *::after { box-sizing: border-box; }
+  a { color: var(--acc); text-underline-offset: 3px; }
+  a:hover { color: var(--acc-hov); }
+  button, input, select, textarea { font-family: inherit; color: inherit; }
+  /* A control is a single-line object: its label never wraps inside a fixed
+     height, and its own line-height is its box, not the prose leading. */
+  button { white-space: nowrap; line-height: 1; display: inline-flex; align-items: center;
+    justify-content: center; gap: var(--sp-2);
+    background: var(--bg-raised); box-shadow: var(--sh-1); }
+  button:hover:not(:disabled) { background: var(--bg-muted); }
+  button:disabled { color: var(--fg-3); cursor: default; }
+  /* Every number in the app is mono with tabular figures — a live readout must
+     not change width as its digits change. */
+  .num { font-family: var(--mono);
+    font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; letter-spacing: -0.01em; }
+  :focus { outline: none; }
+  :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; border-radius: var(--r-sm); }
+  ::selection { background: var(--acc-soft); }
+  ::placeholder { color: var(--fg-3); }
