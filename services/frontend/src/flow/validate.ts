@@ -1,7 +1,7 @@
 import Ajv2020 from "ajv/dist/2020";
 import addFormats from "ajv-formats";
 import type { ErrorObject } from "ajv";
-import schema from "../../contracts/flow-document.schema.json";
+import { schema } from "../contracts";
 import { branchesOf } from "./branches";
 import type { FlowNode } from "./types";
 

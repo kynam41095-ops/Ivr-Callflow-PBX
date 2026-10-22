@@ -1,9 +1,18 @@
-# Môi trường local của IVR-Callflow-PBX — chỉ chạy trên máy này, không commit.
+# Môi trường local của IVR-Callflow-PBX (monorepo).
 #
-# Chạy local:   docker compose up            (mở http://localhost:5173)
-# Squad dùng:   docker compose -f <file này> --env-file <run_dir>/compose.env -p squad-<slug> \
-#                 run --rm <alias> npm test
-#   compose.env trỏ <ALIAS>_DIR vào worktree của run; `run` không mở port nên không đụng
+# Dịch vụ:
+#   frontend       — build từ services/frontend/Dockerfile, phục vụ dist tĩnh bằng nginx.
+#   frontend-test  — profile `test`: image Playwright, mount cả repo để test đọc được
+#                    contracts/ ở gốc; node_modules để trong volume Linux riêng.
+#
+# Chạy bản build:   docker compose up --build frontend       (http://localhost:8080)
+# Chạy test:        docker compose --profile test run --rm frontend-test npm test
+# Chạy dev server:  docker compose --profile test run --rm --service-ports frontend-test \
+#                     npm run dev -- --host 0.0.0.0 --port 5173     (http://localhost:5173)
+#
+# Squad dùng: docker compose -f <file này> -p squad-<slug> --env-file <run_dir>/compose.env \
+#               run --rm frontend-test npm test
+#   compose.env đặt REPO_DIR về worktree của run; `run` không mở port nên không đụng
 #   dev server đang chạy; -p riêng theo slug nên mỗi run một volume node_modules riêng.
 #
 # Thêm thành phần mới (backend, postgres, …) chỉ khi user xác nhận. Thứ đã có sẵn trên
@@ -13,16 +22,27 @@ name: ivr-callflow-pbx
 
 services:
   frontend:
+    build:
+      # Context là gốc repo: Dockerfile cần cả contracts/ lẫn services/frontend/.
+      context: .
+      dockerfile: services/frontend/Dockerfile
+    image: ivr-frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    restart: unless-stopped
+
+  frontend-test:
+    profiles: ["test"]
     # Image Playwright có sẵn Node + Chromium thật cho test e2e.
     # Tag phải khớp đúng phiên bản @playwright/test trong package-lock.json.
     image: mcr.microsoft.com/playwright:v1.63.0-noble
-    working_dir: /app
+    working_dir: /repo/services/frontend
     volumes:
-      - ${FRONTEND_DIR:-./frontend}:/app
-      - frontend_node_modules:/app/node_modules # node_modules Linux, không lẫn bản Windows
+      - ${REPO_DIR:-.}:/repo
+      - frontend_node_modules:/repo/services/frontend/node_modules # node_modules Linux, không lẫn bản Windows
     ports:
-      - "${FRONTEND_PORT:-5173}:5173"
-    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173 --strictPort"
+      - "${FRONTEND_DEV_PORT:-5173}:5173"
+    command: npm test
 
 volumes:
   frontend_node_modules:

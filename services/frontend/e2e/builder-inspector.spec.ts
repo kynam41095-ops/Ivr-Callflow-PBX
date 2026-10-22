@@ -35,8 +35,10 @@ function loadSchema(): SchemaDoc {
     path.dirname(fileURLToPath(import.meta.url)),
     "..",
   );
+  // Contract dùng chung nằm ở gốc monorepo: <repo>/contracts/, hai cấp trên frontend.
+  const repoRoot = path.resolve(frontendRoot, "..", "..");
   const raw = readFileSync(
-    path.join(frontendRoot, "contracts", "flow-document.schema.json"),
+    path.join(repoRoot, "contracts", "flow-document.schema.json"),
     "utf-8",
   );
   return JSON.parse(raw) as SchemaDoc;

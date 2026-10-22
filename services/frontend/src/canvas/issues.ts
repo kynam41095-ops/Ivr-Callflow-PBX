@@ -1,4 +1,4 @@
-import schema from "../../contracts/flow-document.schema.json";
+import { schema } from "../contracts";
 import { checkGraph, checkShape } from "../flow/validate";
 
 // Dấu kiểm hợp lệ tại chỗ của trình dựng (lô 4). NodeIssue bám ValidationResult

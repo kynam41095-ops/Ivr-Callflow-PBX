@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { fileURLToPath } from "node:url";
 import { checkShape, checkGraph } from "./validate";
+import { schemaFilePath } from "../contracts.node";
 import { listFlows, listVersions, getVersion } from "../data/api";
 
 /**
@@ -97,7 +97,7 @@ describe("TC-FLOW-014 — mọi kịch bản giả lập qua sạch cả hai l�
   });
 
   it("TC-FLOW-014: sha256 của contracts/flow-document.schema.json (sau chuẩn hoá CRLF→LF) khớp blob Docs 831b0fe", () => {
-    const schemaPath = fileURLToPath(new URL("../../contracts/flow-document.schema.json", import.meta.url));
+    const schemaPath = schemaFilePath;
     const raw = readFileSync(schemaPath, "utf8");
     const normalized = raw.replace(/\r\n/g, "\n");
     const hash = createHash("sha256").update(normalized).digest("hex");

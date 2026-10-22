@@ -1,13 +1,18 @@
 schema: spec-driven
 
-# Project context (optional)
-# Add only constraints that should guide OpenSpec artifacts and workflows.
-# Include constraints an agent cannot infer by reading the code.
-# Keep general project documentation and discoverable codebase facts out.
-# Example:
-#   context: |
-#     Designs and tasks must cover Windows, macOS, and Linux
-#     Write all artifacts in Spanish
+# Project context — chỉ ghi ràng buộc mà agent không tự suy ra khi đọc code.
+context: |
+  Monorepo IVR-Callflow-PBX: mỗi service nằm ở services/<service>/ và KHÔNG có git riêng —
+  chỉ repo gốc có .git. Không chạy git init hay tạo .git trong thư mục service.
+
+  Mỗi service build bằng Dockerfile riêng với build context là gốc repo (để lấy contracts/).
+  Ứng dụng dựng bằng compose.yaml; test chạy qua profile `test`.
+
+  Contract dùng chung ở contracts/ tại gốc repo, một bản duy nhất; service import trực tiếp,
+  không chép bản sao vào service.
+
+  Nội dung tự nhiên (spec, tài liệu, commit message) viết tiếng Việt UTF-8 có dấu; giữ nguyên
+  tên file, identifier và thuật ngữ kỹ thuật.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
@@ -15,18 +20,10 @@ schema: spec-driven
 #   rules:
 #     proposal:
 #       - Keep proposals under 500 words
-#       - Always state what is out of scope
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
 
 # Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  apply:
+    guidance:
+      - "Chạy kiểm bằng container: docker compose --profile test run --rm frontend-test npm test"
+      - "Sau khi sửa mã, kiểm thêm: docker compose build frontend"
