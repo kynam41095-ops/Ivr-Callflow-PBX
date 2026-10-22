@@ -48,8 +48,8 @@ Requirement nhận diện bằng `### Requirement:` và scenario bằng `#### Sc
 
 ## Risks / Trade-offs
 
-- **[Viết tay 25 requirement dễ lọt hành vi chưa tồn tại]** → chặn bằng hai lệnh grep ở task 3.1 (từ khoá ban hành/xác thực/tenant/tải lên/máy chủ) và 3.2 (tên class/hàm/thư viện nội bộ).
+- **[Viết tay 30 requirement dễ lọt hành vi chưa tồn tại]** → chặn bằng hai lệnh grep ở task 3.1 (từ khoá ban hành/xác thực/tenant/tải lên/máy chủ) và 3.2 (tên class/hàm/thư viện nội bộ).
 - **[Baseline suy ra từ test có thể bỏ sót hành vi không có test]** → ghi nhãn "chưa có test" kèm lý do, không xoá scenario và không hạ yêu cầu cho vừa test.
-- **[Archive ghi 25 requirement vào `openspec/specs/`]** → từ đó mọi thay đổi hành vi phải là change delta trên capability, không sửa thẳng spec; nếu sửa thẳng thì mất dấu vết nguồn.
+- **[Archive ghi 30 requirement vào `openspec/specs/`]** → từ đó mọi thay đổi hành vi phải là change delta trên capability, không sửa thẳng spec; nếu sửa thẳng thì mất dấu vết nguồn.
 - **[Phụ thuộc `monorepo-hoa`]** → đã xong: monorepo ở gốc repo, `contracts/flow-document.schema.json` tồn tại, test chạy bằng `docker compose --profile test run --rm frontend-test npm test`.
 - **[Scenario dẫn đường dẫn tới file cụ thể dễ mục]** → chỉ `flow-validation` nhắc `contracts/flow-document.schema.json`, là đường dẫn ổn định của monorepo; đã kiểm ở task 4.2.

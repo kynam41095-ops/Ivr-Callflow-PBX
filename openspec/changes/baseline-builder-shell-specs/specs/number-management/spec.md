@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Màn quản lý đầu số: xem toàn bộ đầu số của tenant, tìm nhanh, và tạo mới đầu số hoặc kịch bản.
+Màn quản lý đầu số: xem toàn bộ đầu số đang có, tìm nhanh, và tạo mới đầu số hoặc kịch bản.
 
 ## ADDED Requirements
 
@@ -18,7 +18,7 @@ Màn quản lý đầu số SHALL hiện bảng bốn cột: Đầu số, Nhà m
 
 #### Scenario: Đầu số có kịch bản đang chạy
 
-- **WHEN** đầu số trỏ tới một phiên bản đã ban hành
+- **WHEN** đầu số trỏ tới một phiên bản đang chạy
 - **THEN** ô kịch bản hiện tên kịch bản dạng liên kết
 - **AND** trạng thái ghi `Hoạt động`
 
