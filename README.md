@@ -1,5 +1,7 @@
 # IVR-Callflow-PBX
 
+> **Quy ước:** agent bắt buộc trả lời bằng tiếng Việt.
+
 Monorepo của IVR Callflow PBX — nhiều service trong **một** git repo, mỗi service build bằng Dockerfile riêng.
 
 ## Cấu trúc
