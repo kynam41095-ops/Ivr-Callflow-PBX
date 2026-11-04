@@ -15,8 +15,9 @@
 
 ## Remote
 
-- `origin` = `https://gitlab19.mitek.vn/ivr-callflow-pbx/app-business.git` — remote duy nhất của monorepo.
-- Remote `frontend` (`https://gitlab19.mitek.vn/ivr-callflow-pbx/frontend.git`, nhánh `develop` @ `30b79cb`) và `docs` (`https://gitlab19.mitek.vn/ivr-callflow-pbx/docs.git`) đã **đóng băng**: chỉ đọc, không nhận commit mới. Sửa mã chỉ ở monorepo.
+- `origin` = `https://github.com/kynam41095-ops/Ivr-Callflow-PBX.git` — remote duy nhất của monorepo. Nhánh chính là `develop`.
+- Các remote GitLab cũ (`gitlab19.mitek.vn/ivr-callflow-pbx/{app-business,frontend,docs}.git`) đã **đóng băng**: chỉ đọc, không nhận commit mới, và không còn cấu hình trong clone. Sửa mã chỉ qua `origin`.
+- Không dùng `glab` và không push tới `gitlab19.mitek.vn`; mọi thao tác Git đi qua `origin` bằng `git`/`gh`.
 - Thư mục `docs/` cũ và `backend` (rỗng) đã chuyển ra `../IVR-Callflow-PBX-archive/` trên máy này; `docs/` không còn là nguồn chuẩn.
 
 ## Ngôn ngữ
