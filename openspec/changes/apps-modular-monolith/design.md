@@ -63,11 +63,12 @@ cho đúng một lỗi, nguyên văn từ `node_modules/@nestjs/cli/lib/ui/error
 > to return in 7.1. Please install TypeScript 6 (e.g. "npm i -D typescript@^6") until then.
 
 Kiểm chứng bổ sung: `Object.keys(require("typescript"))` trên TS 7.0.2 chỉ có `version` và
-`getExePath`; `exports` chỉ mở `./unstable/*`. Trong khi đó `tsc -p tsconfig.build.json` vẫn biên
-dịch và chạy được app Nest (emit `design:paramtypes` đúng), nghĩa là **chỉ CLI của Nest** vướng,
-không phải runtime. Vẫn chọn TS 6 thay vì bỏ `nest build`: giữ được công cụ chuẩn của framework
-(`nest build`, `nest start --watch`, `nest generate`) thay vì tự viết script `tsc` quanh nó để
-lách một chặn đã biết là tạm thời.
+`getExePath`; `exports` chỉ mở `./unstable/*`. Thử riêng một app Nest tối giản dạng CommonJS
+(`@Controller`, `@Injectable`, `@Module`, `NestFactory`) biên dịch bằng `tsc` của TS 7.0.2: emit
+`design:paramtypes` đúng và app chạy được (`curl` trả `hello world`). Nghĩa là **chỉ CLI của
+Nest** vướng, không phải runtime, và TS 7 không hỏng decorator metadata. Vẫn chọn TS 6 thay vì bỏ
+`nest build`: giữ được công cụ chuẩn của framework (`nest build`, `nest start --watch`,
+`nest generate`) thay vì tự viết script `tsc` quanh nó để lách một chặn đã biết là tạm thời.
 
 Hệ quả kéo theo:
 
