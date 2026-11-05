@@ -10,8 +10,8 @@ Xem `proposal.md` — Why. Hiện trạng đo trên máy này ngày 2026-11-05:
   image Playwright, mount cả repo). Không có database, Redis, xác thực hay đa tenant nào.
 - Gốc repo **không** có `package.json`: không tồn tại `npm run smoke`, `npm run build`,
   `npm run test:integration`, `npm run contracts:check`, `npm run test:e2e`. Entrypoint thật là
-  script trong `services/frontend/package.json` (`dev`, `test`, `typecheck`, `build`, `lint`) chạy
-  qua container.
+  script trong `package.json` của frontend (nay ở `services/frontend/package.json`, sau change là
+  `apps/frontend/package.json`: `dev`, `test`, `typecheck`, `build`, `lint`) chạy qua container.
 - Chưa có `.github/workflows`, chưa có CI nào khác.
 - Hai nhánh remote còn commit riêng chưa vào `develop` (`agent/readme-agent-line-…`,
   `wip/gitlab-intake-scripts`) đều dựa trên layout `services/`; `issue-1-…` và `issue-5-…` chỉ là
@@ -178,7 +178,7 @@ kèm lý do, để lần sau không ai nâng TS 7 rồi vỡ `nest build` mà kh
 | Việc | Lệnh | Ghi chú |
 |---|---|---|
 | Unit + e2e frontend | `docker compose --profile test run --rm frontend-test npm test` | `npm test` = `vitest run && playwright test --pass-with-no-tests` |
-| Chỉ Playwright, có tham số | `docker compose --profile test run --rm frontend-test npx playwright test <file> --reporter=line` | Không chạy Playwright từ `services/frontend/e2e` bằng `cd` |
+| Chỉ Playwright, có tham số | `docker compose --profile test run --rm frontend-test npx playwright test <file> --reporter=line` | Truyền tham số sau `--` nếu qua `npm test`; không `cd` vào `apps/frontend/e2e` để chạy |
 | Typecheck / lint / build frontend | `… frontend-test npm run typecheck` / `npm run lint` / `npm run build` | dùng khi sửa `apps/frontend` |
 | Test backend | `docker compose --profile test run --rm backend-test npm test` | Vitest unit + e2e trong một lần |
 | Build image | `docker compose build frontend backend` | hoặc `docker build -f apps/<app>/Dockerfile -t ivr-<app> .` |
@@ -202,7 +202,8 @@ test và cũng không được phép dọn dẹp gì.
 **Những thứ không áp dụng — kèm bằng chứng, không phải bỏ qua:**
 
 - **Redis / rate-limit bucket:** không có. `compose.yaml` chỉ khai `frontend` và `frontend-test`;
-  `services/frontend/package.json` không có dependency Redis; không có middleware rate-limit trong
+  `package.json` của frontend (đo ở `services/frontend/package.json` hôm nay, sẽ là
+  `apps/frontend/package.json`) không có dependency Redis; không có middleware rate-limit trong
   `src/`. Không có bucket nào để tính hay xoá.
 - **RLS context:** không có database, nên không có row-level security. "Zero row" không được dùng
   làm bằng chứng cho bất cứ điều gì trong change này.
