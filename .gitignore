@@ -4,6 +4,9 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# Sản phẩm build tăng dần của TypeScript (backend: tsconfig.build.tsbuildinfo)
+*.tsbuildinfo
+
 # Công cụ/ghi chú chỉ tồn tại trên máy dev, không thuộc repo
 /.agents/
 /.claude/
