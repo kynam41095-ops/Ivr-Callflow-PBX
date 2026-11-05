@@ -50,7 +50,10 @@ phát hành 2026-08-27, vẫn nhận bản vá (12.3.0 ngày 2026-10-28). Dòng 
 
 ## Decisions
 
-**1. TypeScript 6.0.x cho cả hai app — đúng nhánh "nếu Nest chưa hỗ trợ TS 7 thì hạ xuống 6".**
+**1. TypeScript 6.0.x cho backend — đúng nhánh "nếu Nest chưa hỗ trợ TS 7 thì hạ xuống 6".**
+
+Frontend vốn đã ở `typescript: ~6.0.3` nên không phải đổi; chỉ backend phải chọn phiên bản, và
+chọn 6 thay vì 7.
 
 Đo được, không suy đoán: cài `@nestjs/cli@12.0.11` rồi `npx nest build` với `typescript@7.0.2`
 cho đúng một lỗi, nguyên văn từ `node_modules/@nestjs/cli/lib/ui/errors.js`:
@@ -109,8 +112,12 @@ ESM (`"type": "module"`) nên import nội bộ phải ghi đuôi `.js` — đú
 
 Giống frontend: `node:24-bookworm-slim` build → image runtime gọn chỉ chạy `node dist/main.js`.
 Context là gốc repo để nhất quán với frontend và để sẵn đường cho việc backend import `contracts/`
-sau này. Cổng công bố đặt qua biến `BACKEND_PORT` (mặc định `3000`), không hard-code, để không
-đụng cổng khác trên máy dev.
+sau này.
+
+Hai biến cho hai việc khác nhau, không lẫn: **`PORT`** là cổng tiến trình lắng nghe bên trong
+container (`service-health` kiểm đúng biến này); **`BACKEND_PORT`** là cổng công bố trên máy host,
+dùng trong `compose.yaml` (`"${BACKEND_PORT:-3000}:3000"`), để không đụng cổng khác trên máy dev.
+Container luôn chạy với `PORT=3000` trừ khi ai đó cố ý đổi.
 
 **7. Compose: thêm `backend` và `backend-test`; đổi `frontend-test` sang đường dẫn mới.**
 

@@ -42,9 +42,10 @@
 - [ ] 3.1 Thêm `apps/backend/Dockerfile` multi-stage (`node:24-bookworm-slim` build → runtime slim
       chạy `node dist/main.js`), context = gốc repo. Kiểm: `docker build -f apps/backend/Dockerfile
       -t ivr-backend .` exit 0.
-- [ ] 3.2 Thêm service `backend` (cổng `${BACKEND_PORT:-3000}`) và `backend-test` vào
-      `compose.yaml`. Kiểm: `docker compose config` hợp lệ; `docker compose up -d backend` rồi
-      `curl -fsS http://127.0.0.1:3000/health` trả `{"status":"ok"}`, sau đó `docker compose down`.
+- [ ] 3.2 Thêm service `backend` (cổng công bố `${BACKEND_PORT:-3000}` → `3000`) và `backend-test`
+      vào `compose.yaml`; backend chạy với `PORT=3000` bên trong container. Kiểm: `docker compose
+      config` hợp lệ; `docker compose up -d backend` rồi `curl -fsS
+      http://127.0.0.1:3000/health` trả `{"status":"ok"}`, sau đó `docker compose down`.
 - [ ] 3.3 Ghi `apps/backend/README.md`: chạy dev, build image, chạy test, quy ước module. Kiểm:
       mỗi lệnh trong README chạy lại được từ trạng thái sạch (ít nhất `build` + `test`).
 
