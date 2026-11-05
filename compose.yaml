@@ -1,14 +1,21 @@
 # Môi trường local của IVR-Callflow-PBX (monorepo).
 #
 # Dịch vụ:
-#   frontend       — build từ services/frontend/Dockerfile, phục vụ dist tĩnh bằng nginx.
+#   frontend       — build từ apps/frontend/Dockerfile, phục vụ dist tĩnh bằng nginx.
+#   backend        — build từ apps/backend/Dockerfile, NestJS lắng nghe cổng 3000.
 #   frontend-test  — profile `test`: image Playwright, mount cả repo để test đọc được
 #                    contracts/ ở gốc; node_modules để trong volume Linux riêng.
+#   backend-test   — profile `test`: image Node, chạy vitest (unit + e2e) của backend.
 #
 # Chạy bản build:   docker compose up --build frontend       (http://localhost:8080)
+#                   docker compose up --build backend        (http://localhost:3000/health)
 # Chạy test:        docker compose --profile test run --rm frontend-test npm test
+#                   docker compose --profile test run --rm backend-test npm test
 # Chạy dev server:  docker compose --profile test run --rm --service-ports frontend-test \
 #                     npm run dev -- --host 0.0.0.0 --port 5173     (http://localhost:5173)
+#
+# Cổng: `PORT` là cổng tiến trình lắng nghe BÊN TRONG container backend (mặc định 3000);
+# `BACKEND_PORT` chỉ là cổng công bố ra máy host, để không đụng cổng đang dùng.
 #
 # Squad dùng: docker compose -f <file này> -p squad-<slug> --env-file <run_dir>/compose.env \
 #               run --rm frontend-test npm test
@@ -23,9 +30,9 @@ name: ivr-callflow-pbx
 services:
   frontend:
     build:
-      # Context là gốc repo: Dockerfile cần cả contracts/ lẫn services/frontend/.
+      # Context là gốc repo: Dockerfile cần cả contracts/ lẫn apps/frontend/.
       context: .
-      dockerfile: services/frontend/Dockerfile
+      dockerfile: apps/frontend/Dockerfile
     image: ivr-frontend
     ports:
       - "${FRONTEND_PORT:-8080}:80"
@@ -36,13 +43,40 @@ services:
     # Image Playwright có sẵn Node + Chromium thật cho test e2e.
     # Tag phải khớp đúng phiên bản @playwright/test trong package-lock.json.
     image: mcr.microsoft.com/playwright:v1.63.0-noble
-    working_dir: /repo/services/frontend
+    working_dir: /repo/apps/frontend
     volumes:
       - ${REPO_DIR:-.}:/repo
-      - frontend_node_modules:/repo/services/frontend/node_modules # node_modules Linux, không lẫn bản Windows
+      - frontend_node_modules:/repo/apps/frontend/node_modules # node_modules Linux, không lẫn bản Windows
     ports:
       - "${FRONTEND_DEV_PORT:-5173}:5173"
     command: npm test
 
+  backend:
+    build:
+      # Context là gốc repo, giống frontend (design.md quyết định 6).
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    image: ivr-backend
+    environment:
+      # Cổng lắng nghe bên trong container; cổng ra máy host là BACKEND_PORT.
+      PORT: "3000"
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    restart: unless-stopped
+
+  backend-test:
+    profiles: ["test"]
+    # Không cần Chromium nên dùng image Node gọn thay vì image Playwright.
+    image: node:24-bookworm-slim
+    working_dir: /repo/apps/backend
+    volumes:
+      - ${REPO_DIR:-.}:/repo
+      - backend_node_modules:/repo/apps/backend/node_modules # node_modules Linux, không lẫn bản Windows
+    # Entrypoint tự `npm ci` khi volume node_modules còn rỗng, rồi chạy lệnh được truyền vào.
+    # Nhờ vậy `docker compose run --rm backend-test npm test` chạy được ngay cả trên máy sạch.
+    entrypoint: ["sh", "/repo/apps/backend/docker-entrypoint.sh"]
+    command: npm test
+
 volumes:
   frontend_node_modules:
+  backend_node_modules:

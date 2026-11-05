@@ -2,7 +2,7 @@
 
 SPA dựng bằng Vite: React 19 + TypeScript + `@xyflow/react`. Test unit chạy Vitest (môi trường `node`), test e2e chạy Playwright trên Chromium.
 
-Service nằm trong monorepo tại `services/frontend`; **không** có git riêng. Contract dùng chung (`flow-document.schema.json`) nằm ở `<repo>/contracts/`, đường dẫn được khai một chỗ duy nhất trong `src/contracts.ts`.
+App nằm trong monorepo tại `apps/frontend`; **không** có git riêng. Contract dùng chung (`flow-document.schema.json`) nằm ở `<repo>/contracts/`, đường dẫn được khai một chỗ duy nhất trong `src/contracts.ts`.
 
 Mọi lệnh dưới đây chạy **từ gốc repo**; Node và Chromium nằm trong container, không cần cài trên máy.
 
@@ -18,7 +18,7 @@ Mở http://localhost:5173.
 ## Build image và chạy bản tĩnh
 
 ```bash
-docker compose build frontend   # hoặc: docker build -f services/frontend/Dockerfile -t ivr-frontend .
+docker compose build frontend   # hoặc: docker build -f apps/frontend/Dockerfile -t ivr-frontend .
 docker compose up frontend      # http://localhost:8080
 ```
 
