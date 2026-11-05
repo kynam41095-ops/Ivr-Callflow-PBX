@@ -26,9 +26,9 @@ Phiên bản đo trực tiếp bằng `npm view` và bằng cách cài thử tro
 
 **Về chữ "LTS" trong yêu cầu:** NestJS **không** công bố nhãn LTS cho các bản major (không có
 mục LTS trong release notes hay docs; chữ LTS duy nhất trong release v12 nói về Node.js LTS).
-Vì vậy "LTS mới nhất" được hiểu là **dòng major ổn định hiện hành**: 12.x, mới nhất 12.3.3 —
-phát hành 2026-08-27, vẫn nhận bản vá (12.3.0 ngày 2026-10-28). Dòng 11.x vẫn được vá song song
-(11.2.8 ngày 2026-10-23) nếu muốn thận trọng hơn; xem Risks.
+Vì vậy "LTS mới nhất" được hiểu là **dòng major ổn định hiện hành**: 12.x — major 12.0.0 ra
+2026-08-27, bản vá mới nhất `12.3.3` công bố 2026-11-04 (một ngày trước lúc viết). Dòng 11.x vẫn
+được vá song song (11.2.8, 2026-10-23) nếu muốn thận trọng hơn; xem Risks.
 
 ## Goals / Non-Goals
 
