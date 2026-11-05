@@ -108,8 +108,11 @@ tự viết script `tsc` quanh nó để lách một chặn đã biết là tạ
 
 Hệ quả kéo theo:
 
-- `typescript-eslint` 8.72.1 khai peer `typescript >=4.8.4 <6.1.0` → khớp TS 6.0.x, **không** khớp
-  TS 7. Vì vậy lint bằng `typescript-eslint` cho backend chỉ dùng được với TS 6.
+- Backend **không** dùng `typescript-eslint`: scaffold `nest new` 12 sinh `oxlint` +
+  `oxlint-tsgolint` và script `oxlint --type-aware src/ test/`. Đã chạy thử trên scaffold với
+  `typescript@6.0.3`: `Found 0 warnings and 0 errors.` (oxlint 1.91.0, 111 rules) — hoạt động.
+  Frontend vẫn giữ `typescript-eslint` 8.72.1 (peer `typescript >=4.8.4 <6.1.0`, khớp TS 6.0.x vì
+  thế **không** được nâng frontend lên TS 7).
 - `ts-jest` khai peer `typescript >=4.3 <7` → TS 6 cũng là bản cao nhất còn dùng được. Không dùng
   ts-jest: khung Nest 12 dùng **Vitest** (xem quyết định 4).
 
@@ -251,8 +254,9 @@ GUI".
 - **[Nest 12 mới ra ~2 tháng]** → còn ít kinh nghiệm vận hành so với 11.x. Nếu muốn thận trọng,
   chọn dòng 11.x trong lúc apply: cùng khung module, cùng CLI, chỉ khác major. Ghi rõ trong
   proposal nếu đổi để người duyệt thấy.
-- **[TS 6 là bản bị chặn trên, TS 7.1 mới gỡ]** → khi Nest CLI hỗ trợ TS 7, nâng cả
-  `typescript` lẫn `typescript-eslint` cùng lúc; ghi chú này vào `AGENTS.md`.
+- **[TS 6 là bản bị chặn trên, TS 7.1 mới gỡ]** → khi Nest CLI hỗ trợ TS 7, nâng `typescript`
+  của backend và `typescript` + `typescript-eslint` của frontend cùng lúc; ghi chú này vào
+  `AGENTS.md`.
 - **[Vitest 5 ở frontend, Vitest 4.x trong scaffold backend]** → hai app giữ version riêng vì
   mỗi app có `package.json` riêng; không gộp workspace lúc này (chưa có package dùng chung nào để
   chia sẻ). Rủi ro thấp vì test chạy trong từng image riêng.
@@ -277,7 +281,32 @@ nên revert là đủ. Trước khi merge, nhánh change này không đụng `or
 
 ## Open Questions
 
-Không câu nào chặn việc apply change này — change chỉ đổi layout và dựng khung.
+**Không câu nào chặn apply.** Change này đã đủ chốt để apply: mọi lựa chọn bên dưới đã có mặc định
+được ghi trong Decisions, và đổi lại được mà không phải làm lại change.
+
+### Đã tự quyết, nêu ra để đổi nếu muốn
+
+Ba lựa chọn dưới đây có thể đi hướng khác mà **không** ảnh hưởng phần còn lại của change. Nói một
+câu là đổi, không cần chờ.
+
+1. **Nest 12.x thay vì 11.x.** "LTS mới nhất" không có nghĩa xác định vì Nest không gắn nhãn LTS
+   cho major; tôi lấy major ổn định hiện hành (12.3.3). Muốn 11.x thì khung module và CLI không
+   đổi, chỉ đổi số version.
+2. **Backend dùng ESM (`"type": "module"`) theo mặc định của `nest new` 12**, nên import nội bộ
+   ghi đuôi `.js`. Muốn CommonJS cho quen thì phải chọn lại lúc scaffold — đổi sau khi đã viết mã
+   sẽ tốn công hơn, nên nếu đội quen CJS thì nên chốt ngay bây giờ.
+   Đã đo: bỏ `"type": "module"` và đổi sang CJS **vẫn build + chạy được** (`nest build` thoát 0,
+   `dist/main.js` dùng `require()`, `curl` trả `Hello World!`), nhưng phải sửa thêm ba chỗ:
+   `await bootstrap()` ở top-level phải thành `void bootstrap()` (TS1378), import nội bộ bỏ đuôi
+   `.js`, và `moduleResolution: node` không dùng được (TS5098 + TS5107) nên vẫn phải để
+   `nodenext`. Tức CJS làm được, chỉ là ba chỉnh tay thêm — nên ESM vẫn là mặc định rẻ hơn.
+3. **Không thêm `package.json` ở gốc repo** (không npm workspaces). Vì thế các lệnh
+   `npm run smoke/build/test:integration/contracts:check/test:e2e` trong `operations.apply.guidance`
+   **không tồn tại**; design thay bằng lệnh `docker compose` tương đương. Muốn guidance chạy đúng
+   nguyên văn thì cần thêm `package.json` gốc + 5 script đó — việc này tôi **không** tự thêm vì nó
+   là thay đổi công cụ ở gốc repo, ngoài phạm vi "đổi cấu trúc + khởi tạo backend".
+
+### Ngoài phạm vi change này
 
 - **Nghiệp vụ đầu tiên của backend là gì?** Chưa chốt, và **không** thuộc change này; sẽ là change
   riêng. Khung `HealthModule` cố ý không ám chỉ miền nào.
