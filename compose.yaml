@@ -1,7 +1,7 @@
 # Môi trường local của IVR-Callflow-PBX (monorepo).
 #
 # Dịch vụ:
-#   frontend       — build từ services/frontend/Dockerfile, phục vụ dist tĩnh bằng nginx.
+#   frontend       — build từ apps/frontend/Dockerfile, phục vụ dist tĩnh bằng nginx.
 #   frontend-test  — profile `test`: image Playwright, mount cả repo để test đọc được
 #                    contracts/ ở gốc; node_modules để trong volume Linux riêng.
 #
@@ -23,9 +23,9 @@ name: ivr-callflow-pbx
 services:
   frontend:
     build:
-      # Context là gốc repo: Dockerfile cần cả contracts/ lẫn services/frontend/.
+      # Context là gốc repo: Dockerfile cần cả contracts/ lẫn apps/frontend/.
       context: .
-      dockerfile: services/frontend/Dockerfile
+      dockerfile: apps/frontend/Dockerfile
     image: ivr-frontend
     ports:
       - "${FRONTEND_PORT:-8080}:80"
@@ -36,10 +36,10 @@ services:
     # Image Playwright có sẵn Node + Chromium thật cho test e2e.
     # Tag phải khớp đúng phiên bản @playwright/test trong package-lock.json.
     image: mcr.microsoft.com/playwright:v1.63.0-noble
-    working_dir: /repo/services/frontend
+    working_dir: /repo/apps/frontend
     volumes:
       - ${REPO_DIR:-.}:/repo
-      - frontend_node_modules:/repo/services/frontend/node_modules # node_modules Linux, không lẫn bản Windows
+      - frontend_node_modules:/repo/apps/frontend/node_modules # node_modules Linux, không lẫn bản Windows
     ports:
       - "${FRONTEND_DEV_PORT:-5173}:5173"
     command: npm test
