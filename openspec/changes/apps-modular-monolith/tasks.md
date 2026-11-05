@@ -23,9 +23,12 @@
 ## 2. Khung backend NestJS 12
 
 - [ ] 2.1 Tạo `apps/backend` từ `nest new` bản ESM (`--skip-git`, `--no-observe`), ghim version
-      cụ thể trong `package.json` (`@nestjs/*` 12.3.x, `typescript` `~6.0.3`). Kiểm:
-      `apps/backend/package.json` không còn ký tự `^`/`~` ở nhóm `@nestjs/*`; không có `.git`
-      trong `apps/backend` (`find apps -name .git` rỗng).
+      cụ thể trong `package.json`: `@nestjs/common`, `@nestjs/core`,
+      `@nestjs/platform-express`, `@nestjs/testing` = `12.3.3`; `typescript` = `~6.0.3`. Kiểm:
+      `grep -E '"@nestjs/(common|core|platform-express|testing)": "\^' apps/backend/package.json`
+      rỗng; không có `.git` trong `apps/backend` (`find apps -name .git` rỗng);
+      `node -p "require('./apps/backend/node_modules/typescript/package.json').version"` in
+      `6.0.x`.
 - [ ] 2.2 Thêm `HealthModule` ở `src/modules/health/` (`health.controller.ts`, `health.module.ts`)
       trả `GET /health` → `200 {status:"ok"}`, nối vào `AppModule`, và **xoá** `AppController` /
       `AppService` mẫu của scaffold cùng test của chúng (để `GET /` không còn trả "Hello World!").
