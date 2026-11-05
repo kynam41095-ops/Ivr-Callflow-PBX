@@ -17,9 +17,9 @@ Change này chỉ tạo bộ artifact propose; **không** đổi mã nguồn. Tr
   file), thư mục `services/` biến mất. Mọi đường dẫn trong `README.md`, `AGENTS.md`,
   `compose.yaml`, `openspec/config.yaml`, `apps/frontend/Dockerfile` và `apps/frontend/README.md`
   phải trỏ theo tên mới.
-- Thêm `apps/backend/` — khung **NestJS 12** (bản ổn định mới nhất) dạng modular monolith:
-  `AppModule` gốc + mỗi miền nghiệp vụ một module riêng dưới `src/modules/<domain>/`, chưa có
-  nghiệp vụ nào (xem Open Questions).
+- Thêm `apps/backend/` — khung **NestJS 12.3** (major ổn định hiện hành; Nest không công bố nhãn
+  LTS, xem `design.md`) dạng modular monolith: `AppModule` gốc + mỗi miền nghiệp vụ một module
+  riêng dưới `src/modules/<domain>/`, chưa có nghiệp vụ nào (xem Open Questions).
 - **TypeScript 6.x, không phải 7**: NestJS CLI 12 hiện chặn TypeScript 7 vì TS 7.0 chỉ phát hành
   `tsc`, chưa có compiler API mà `nest build` cần (đo được, xem `design.md`). Đúng như yêu cầu,
   hạ xuống TS 6 cho backend. Frontend đang ở `~6.0.3` nên **không phải đổi**.

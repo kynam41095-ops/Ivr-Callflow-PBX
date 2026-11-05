@@ -24,6 +24,12 @@ Phiên bản đo trực tiếp bằng `npm view` và bằng cách cài thử tro
 | `typescript` | `7.0.2` | Chỉ phát hành `tsc` + API `unstable/*` |
 | `vitest` | `5.1.0` | Khung Nest 12 sinh sẵn `vitest` 4.x; frontend đang dùng `^5.0.1` |
 
+**Về chữ "LTS" trong yêu cầu:** NestJS **không** công bố nhãn LTS cho các bản major (không có
+mục LTS trong release notes hay docs; chữ LTS duy nhất trong release v12 nói về Node.js LTS).
+Vì vậy "LTS mới nhất" được hiểu là **dòng major ổn định hiện hành**: 12.x, mới nhất 12.3.3 —
+phát hành 2026-08-27, vẫn nhận bản vá (12.3.0 ngày 2026-10-28). Dòng 11.x vẫn được vá song song
+(11.2.8 ngày 2026-10-23) nếu muốn thận trọng hơn; xem Risks.
+
 ## Goals / Non-Goals
 
 **Goals:**
@@ -127,6 +133,9 @@ kèm lý do, để lần sau không ai nâng TS 7 rồi vỡ `nest build` mà kh
 - **[Nest 12 phát hành ESM, `"type": "module"`]** → import nội bộ phải ghi `.js`; quên là lỗi
   runtime `ERR_MODULE_NOT_FOUND`. Giảm thiểu: giữ nguyên quy ước scaffold sinh ra, test e2e bắt
   được vì nó boot thật `AppModule`.
+- **[Nest 12 mới ra ~2 tháng]** → còn ít kinh nghiệm vận hành so với 11.x. Nếu muốn thận trọng,
+  chọn dòng 11.x trong lúc apply: cùng khung module, cùng CLI, chỉ khác major. Ghi rõ trong
+  proposal nếu đổi để người duyệt thấy.
 - **[TS 6 là bản bị chặn trên, TS 7.1 mới gỡ]** → khi Nest CLI hỗ trợ TS 7, nâng cả
   `typescript` lẫn `typescript-eslint` cùng lúc; ghi chú này vào `AGENTS.md`.
 - **[Vitest 5 ở frontend, Vitest 4.x trong scaffold backend]** → hai app giữ version riêng vì
