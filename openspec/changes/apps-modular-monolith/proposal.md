@@ -15,21 +15,51 @@ chưa đổi, `services/` vẫn còn nguyên, `contracts/` không bị chạm t�
 
 - **BREAKING** đổi layout: `services/frontend/` → `apps/frontend/` bằng `git mv` (giữ lịch sử
   file), thư mục `services/` biến mất. Mọi đường dẫn trong `README.md`, `AGENTS.md`,
-  `compose.yaml`, `openspec/config.yaml`, `apps/frontend/Dockerfile` và `apps/frontend/README.md`
-  phải trỏ theo tên mới.
+  `compose.yaml`, `AGENTS.md`, `apps/frontend/Dockerfile`, `apps/frontend/README.md` và comment
+  trong `apps/frontend/src/contracts.ts` phải trỏ theo tên mới. Riêng `openspec/config.yaml`
+  **không** sửa: nó được ghi đè nguyên văn theo yêu cầu.
 - Thêm `apps/backend/` — khung **NestJS 12.3** (major ổn định hiện hành; Nest không công bố nhãn
   LTS, xem `design.md`) dạng modular monolith: `AppModule` gốc + mỗi miền nghiệp vụ một module
   riêng dưới `src/modules/<domain>/`, chưa có nghiệp vụ nào (xem Open Questions).
+- **ESM**: backend dùng `"type": "module"` như mặc định của `nest new` 12 (đã chốt), nên import
+  nội bộ ghi đuôi `.js`.
 - **TypeScript 6.x, không phải 7**: NestJS CLI 12 hiện chặn TypeScript 7 vì TS 7.0 chỉ phát hành
   `tsc`, chưa có compiler API mà `nest build` cần (đo được, xem `design.md`). Đúng như yêu cầu,
   hạ xuống TS 6 cho backend. Frontend đang ở `~6.0.3` nên **không phải đổi**.
 - Build/run: thêm `apps/backend/Dockerfile` (multi-stage, context = gốc repo như frontend),
   service `backend` trong `compose.yaml`, profile `test` cho test backend.
-- Tài liệu và chính sách: `README.md`, `AGENTS.md`, `openspec/config.yaml` mô tả layout `apps/`,
-  quy ước module backend, và việc TypeScript bị ghim ở 6 cho tới khi Nest hỗ trợ 7. `openspec/config.yaml`
-  được bổ sung nguyên văn khối `rules` (design, tasks) và `operations.apply.guidance` theo yêu cầu.
-- **Không** có việc nào liên quan contract: `contracts/` giữ nguyên tại gốc, không di chuyển, không
-  sửa, không thêm endpoint nào theo contract.
+- Tài liệu và chính sách: `README.md`, `AGENTS.md` mô tả layout `apps/`, quy ước module backend, và
+  việc TypeScript bị ghim ở 6 cho tới khi Nest hỗ trợ 7. `openspec/config.yaml` được **ghi đè
+  nguyên văn** bằng file người đặt việc gửi (`schema` + `rules` cho proposal/specs/design/tasks +
+  `operations.apply.guidance`), không thêm bớt.
+
+## Non-Goals
+
+- **Không viết nghiệp vụ phía máy chủ** (đầu số, kịch bản, phiên bản, media, hàng đợi). Backend chỉ
+  là khung chạy được; miền nghiệp vụ đầu tiên sẽ là change riêng.
+- **Không có việc nào liên quan contract**: `contracts/` giữ nguyên tại gốc repo, không di chuyển,
+  không sửa nội dung, không thêm endpoint nào theo contract, không thêm `contracts:check`.
+- **Không nối frontend sang gọi backend thật**: `apps/frontend/src/data/api.ts` vẫn là kho giả lập
+  trong bộ nhớ; không đổi hành vi của tám capability frontend đang có.
+- **Không thêm hạ tầng**: không PostgreSQL, không Redis, không hàng đợi, không xác thực, không
+  khái niệm tenant.
+- **Không thêm `package.json` ở gốc repo** (không npm workspaces, không thêm
+  `npm run smoke/build/test:integration/contracts:check/test:e2e`).
+- **Không dựng CI** (GitHub Actions hay khác) trong change này.
+- **Không đổi `openspec/specs/**`** của tám capability đang có.
+
+## Compatibility impact
+
+- **Đường dẫn**: mọi lệnh, script, tài liệu đang trỏ `services/frontend` phải đổi sang
+  `apps/frontend` — đây là thay đổi **phá vỡ** với người đang dùng đường dẫn cũ. Hai nhánh remote
+  còn commit riêng trên nền `services/` phải rebase.
+- **Hành vi sản phẩm**: không đổi. Frontend giữ nguyên 64 unit test và 81 e2e; backend là tiến
+  trình mới, chỉ thêm code, không sửa mã frontend.
+- **Contract**: không đổi. `contracts/flow-document.schema.json` giữ nguyên byte, và
+  `apps/frontend/src` vẫn cách gốc ba cấp nên đường dẫn tương đối đọc contract giữ nguyên giá trị.
+- **Runtime mới**: thêm image và service `backend` (cổng 3000) — máy dev cần cổng còn trống, hoặc
+  đổi qua `BACKEND_PORT`.
+- **Công cụ**: không ai phải đổi Node/npm trên máy; mọi thứ chạy trong container như hiện tại.
 
 ## Capabilities
 
@@ -59,5 +89,6 @@ capability hiện có (`builder-shell`, `draft-authoring`, `flow-canvas`, `flow-
   frontend không đổi dependency.
 - Test: frontend giữ nguyên 64 unit + 81 e2e (baseline đo hôm nay, xanh) — đây là bằng chứng hồi
   quy của việc đổi layout; backend thêm test khung (unit + e2e bằng Vitest/supertest).
-- Tài liệu: `README.md`, `AGENTS.md`, `openspec/config.yaml`, `apps/frontend/README.md`.
+- Tài liệu: `README.md`, `AGENTS.md`, `apps/frontend/README.md`; `openspec/config.yaml` ghi đè nguyên
+  văn theo yêu cầu (không phải sửa nội dung để đổi đường dẫn).
 - Không đụng: `contracts/`, `openspec/specs/**`, mã nghiệp vụ của frontend.

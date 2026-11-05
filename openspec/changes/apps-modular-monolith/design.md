@@ -62,8 +62,9 @@ trong `specs/service-health/spec.md`; `AC-*` là tiêu chí cấu trúc của ch
 |---|---|---|---|---|---|
 | S1 | Cổng mặc định khi không có `PORT` (`service-health` R1) | Image backend đã build; biến `PORT` **không được đặt** trong môi trường | `docker run --rm -p 3001:3000 ivr-backend` (**không** truyền `-e PORT`), rồi `curl -fsS http://127.0.0.1:3001/health` | Dịch vụ lắng nghe `3000` trong container; `curl` trả `200` JSON `{"status":"ok"}` | mã thoát `curl` = 0 + thân phản hồi; log `Nest application successfully started` |
 | S2 | Cổng theo `PORT` khác (`service-health` R1) | Image backend đã build | `docker run --rm -e PORT=4010 -p 4010:4010 ivr-backend`, `curl http://127.0.0.1:4010/health`, `curl http://127.0.0.1:3000/health` | `curl` cổng `4010` = `200`; `curl` cổng `3000` **thất bại** (`curl` mã thoát ≠ 0, không kết nối được) | hai mã thoát `curl` khác nhau, không suy đoán |
-| S3 | `GET /health` trả sẵn sàng (`service-health` R2) | Dịch vụ đã khởi động xong (chờ log `successfully started`, không `sleep` mù) | `curl -i http://127.0.0.1:<cổng>/health` | Dòng trạng thái `200`; thân JSON parse được, `status` = `"ok"`; không cần header xác thực | `curl -i` đầy đủ + `jq -e '.status=="ok"'` mã thoát 0 |
-| S4 | Đường dẫn chưa khai báo (`service-health` R2) | Dịch vụ đã khởi động xong | `curl -o /dev/null -s -w '%{http_code}' http://127.0.0.1:<cổng>/khong-ton-tai` | In ra `404` | giá trị in ra đúng `404` |
+| S3 | `GET /health` trả sẵn sàng (`service-health` R3) | Dịch vụ đã khởi động xong (chờ log `successfully started`, không `sleep` mù) | `curl -i http://127.0.0.1:<cổng>/health` | Dòng trạng thái `200`; thân JSON parse được, `status` = `"ok"`; không cần header xác thực | `curl -i` đầy đủ + `jq -e '.status=="ok"'` mã thoát 0 |
+| S4 | Đường dẫn chưa khai báo (`service-health` R3) | Dịch vụ đã khởi động xong | `curl -o /dev/null -s -w '%{http_code}' http://127.0.0.1:<cổng>/khong-ton-tai` | In ra `404` | giá trị in ra đúng `404` |
+| S5 | `PORT` không hợp lệ → dừng (`service-health` R2) | Image backend đã build | Ba lần chạy riêng: `-e PORT=`, `-e PORT=abc`, `-e PORT=70000`, mỗi lần `docker run --rm` | Mỗi lần: mã thoát ≠ `0`; **không** cổng TCP nào mở; với `PORT=abc` **không** sinh Unix socket tên `abc` | ba mã thoát ≠ 0; `docker run` không in `successfully started`; `ls` trong workdir không có file `abc` |
 | AC-1 | Layout mới, không còn `services/` (`proposal.md` What Changes) | Working tree sạch ở nhánh ticket | `git mv services/frontend apps/frontend`; `test -f apps/frontend/package.json`; `test ! -d services` | Cả hai lệnh `test` thoát 0; `git status` ghi nhận rename (`R`), không phải `D`+`A` hàng loạt | đầu ra `git status --short` bắt đầu bằng `R` cho các file đã đổi tên |
 | AC-2 | Frontend không hồi quy sau khi đổi đường dẫn (Goals) | `apps/frontend` đã ở vị trí mới; chưa sửa gì thêm | `docker compose --profile test run --rm frontend-test npm test` | **64 unit + 81 e2e** xanh, giống baseline đo hôm nay | log có `64 passed` và `81 passed`; mã thoát 0 |
 | AC-3 | Frontend build được ở đường dẫn mới | `apps/frontend` đã ở vị trí mới | `docker compose build frontend` | Build thành công; image phục vụ được trang chủ | mã thoát 0; `curl -fsS http://127.0.0.1:8080/` chứa `id="root"` |
@@ -76,12 +77,37 @@ Ghi chú về role/tenant: repo **không** có xác thực, không có tenant, n
 nên cột "role/tenant" ở trên đồng nhất là "không áp dụng"; bất kỳ yêu cầu phân quyền nào cũng nằm
 ngoài change này. Đường dẫn lỗi (`S4`) là failure path duy nhất mà khung hiện có.
 
-**Bẫy đã kiểm, đừng mắc lại:** `docker run -e PORT=` đặt biến thành **chuỗi rỗng**, và `??` trong
-`process.env.PORT ?? 3000` **không** bắt được chuỗi rỗng — đo được: `PORT= node -e
-"console.log(process.env.PORT ?? 3000)"` in ra `""`, không phải `3000`. Vì vậy S1 phải chạy
-container **không** có biến `PORT`; muốn chấp nhận cả chuỗi rỗng thì mã phải dùng `||` hoặc kiểm
-`.trim() !== ""`, và spec `service-health` chỉ ràng buộc trường hợp "không đặt", nên mã giữ `??`
-là đủ và **không** được nới spec để che lỗi gọi sai.
+## Giá trị mặc định và thứ tự ưu tiên của `PORT`
+
+Rule `specs` yêu cầu chốt giá trị và thứ tự ưu tiên ở chỗ hành vi phụ thuộc vào chúng. `PORT` là
+chỗ duy nhất như vậy, và nó **không** hiển nhiên — đo trên máy này ngày 2026-11-05 bằng
+`node:net` và bằng chính app `nest new`:
+
+| `PORT` | `process.env.PORT ?? 3000` | Hành vi thật của Node/Nest | Kết luận |
+|---|---|---|---|
+| không đặt | `3000` (số) | listen TCP `3000` | đúng ý |
+| `""` (chuỗi rỗng) | `""` | **ném `ERR_SOCKET_BAD_PORT`** khi listen | phải chết, không được lặng lẽ dùng 3000 |
+| `"   "` | `"   "` | không phải số → rơi vào nhánh "không phải số" | phải chết |
+| `"abc"` | `"abc"` | **tạo Unix socket tên `abc`** và "khởi động thành công", TCP **không** mở | nguy hiểm nhất — phải chặn |
+| `"70000"` | `"70000"` | ngoài khoảng cổng hợp lệ | phải chết |
+
+Bằng chứng cho dòng `"abc"`: chạy `PORT=abc node dist/main.js` trong thư mục trống, log ghi
+`Nest application successfully started`, nhưng `curl http://127.0.0.1:3000/health` trả mã thoát
+`7` (không kết nối được) và trong thư mục xuất hiện file `srwx------ abc` — đó là Unix domain
+socket, không phải cổng TCP. Nghĩa là **`process.env.PORT ?? 3000` một mình là không đủ**: một
+biến môi trường gõ sai làm dịch vụ báo "đã khởi động" mà không phục vụ HTTP, và health check của
+nơi vận hành sẽ thấy container "healthy" nhưng không ai gọi vào được.
+
+**Quyết định:** `main.ts` đọc `PORT`, và nếu biến có mặt thì **bắt buộc** là số nguyên trong
+khoảng `1`–`65535`; nếu không, in một dòng lỗi rõ ràng và thoát với mã khác `0` (không mở socket
+nào). Chỉ khi biến **không đặt** mới dùng `3000`. Đây là hành vi được ràng buộc bởi requirement
+"PORT không hợp lệ làm dịch vụ dừng" trong `specs/service-health/spec.md` (3 scenario: rỗng, không
+phải số, ngoài khoảng).
+
+**Bẫy khi kiểm, đừng mắc lại:** `docker run -e PORT=` đặt biến thành **chuỗi rỗng**, không phải
+"không đặt" — nên S1 (trường hợp mặc định) phải chạy container **không** truyền `-e PORT`; còn
+`-e PORT=` chính là một ca của requirement "PORT không hợp lệ". Không được nới spec để che việc
+gọi lệnh sai.
 
 ## Decisions
 
@@ -143,11 +169,19 @@ Khung `nest new` bản 12 sinh sẵn `vitest.config.ts` + `vitest.config.e2e.ts`
 runner, và tránh `ts-jest` (peer `<7`). `supertest` cho phép test `GET /health` mà không mở cổng
 thật, nên AC-5 không cần cấp cổng và không thể đụng cổng của ai khác.
 
-**5. TypeScript 6 kéo theo tsconfig kiểu scaffold, không dùng `tsc` trần.**
+**5. TypeScript 6 + ESM theo scaffold, không dùng `tsc` trần.**
 
-Dùng `tsconfig.json` của scaffold (`module`/`moduleResolution: nodenext`, `emitDecoratorMetadata`,
-`experimentalDecorators`, `strict`, `outDir`, `rootDir`) + `tsconfig.build.json` loại test. Dự án
-ESM (`"type": "module"`) nên import nội bộ phải ghi đuôi `.js` — đúng như mã scaffold sinh ra.
+Người đặt việc đã chốt **ESM** (mục Open Questions). Dùng `tsconfig.json` của scaffold
+(`module`/`moduleResolution: nodenext`, `emitDecoratorMetadata`, `experimentalDecorators`,
+`strict`, `outDir`, `rootDir`) + `tsconfig.build.json` loại test; `package.json` có
+`"type": "module"` nên import nội bộ ghi đuôi `.js`. Đây là mặc định của `nest new` 12 nên không
+phải chỉnh tay gì thêm.
+
+Đã đo nhánh còn lại để so: bỏ `"type": "module"` sang CommonJS **vẫn build + chạy được**
+(`nest build` thoát 0, `dist/main.js` dùng `require()`, `curl` trả `Hello World!`), nhưng phải sửa
+thêm ba chỗ — `await bootstrap()` top-level phải thành `void bootstrap()` (TS1378), import nội bộ
+bỏ đuôi `.js`, và `moduleResolution: node` không dùng được (TS5098 + TS5107). Chọn ESM vì rẻ hơn
+và đúng mặc định framework.
 
 **6. Container hoá: `apps/backend/Dockerfile` multi-stage, context = gốc repo.**
 
@@ -166,10 +200,87 @@ volume. `backend-test` dùng `node:24-bookworm-slim` (không cần Chromium) v�
 
 **8. Tài liệu và ngữ nghĩa "service" đi theo layout.**
 
-`README.md`, `AGENTS.md`, `openspec/config.yaml`, `apps/frontend/README.md`,
-`apps/frontend/Dockerfile` đều nhắc `services/`. Đổi hết sang `apps/`. `AGENTS.md` thêm một mục
-ngắn về quy ước module backend (một miền = một module dưới `src/modules/`) và ghim TypeScript 6
-kèm lý do, để lần sau không ai nâng TS 7 rồi vỡ `nest build` mà không biết vì sao.
+`README.md`, `AGENTS.md`, `apps/frontend/README.md`, `apps/frontend/Dockerfile` và
+`apps/frontend/src/contracts.ts` (comment) đều nhắc `services/`. Đổi hết sang `apps/`. `AGENTS.md`
+thêm một mục ngắn về quy ước module backend (một miền = một module dưới `src/modules/`) và ghim
+TypeScript 6 kèm lý do, để lần sau không ai nâng TS 7 rồi vỡ `nest build` mà không biết vì sao.
+
+`openspec/config.yaml` là ngoại lệ: nó đã được **ghi đè nguyên văn** bằng file người đặt việc gửi,
+nên **không** sửa để "đổi `services/` thành `apps/`". File đó không có key `context`; bốn ràng buộc
+từng nằm ở `context` (một `.git` ở gốc, contract một bản ở `contracts/`, build bằng Dockerfile với
+context là gốc repo, nội dung tiếng Việt) hiện được giữ ở `AGENTS.md`, nên không mất thông tin.
+Việc này đã kiểm: cả bốn câu đều có trong `AGENTS.md`.
+
+## Cơ sở quan sát được và những gì sẽ tái dùng
+
+Rule `design` mục 4 yêu cầu nền tảng phải là **cái đã kiểm tra thật**, tách "quan sát được" khỏi
+"đề xuất", và ghi rõ API/quy ước tái dùng, biên bị ảnh hưởng, dependency. Mọi dòng dưới đây đọc
+trực tiếp trong working tree hôm nay.
+
+**Quan sát được (đã có trong mã, không phải đề xuất):**
+
+| Thứ | Vị trí | Dùng để |
+|---|---|---|
+| Quy ước "một chỗ biết đường dẫn contract" | `services/frontend/src/contracts.ts` | giữ nguyên cách làm khi đổi layout: không sửa giá trị đường dẫn, chỉ sửa comment |
+| Kiểu test + cách chạy | `services/frontend/package.json` (`test` = `vitest run && playwright test --pass-with-no-tests`) | AC-2 dùng lại đúng entrypoint này, không thêm script |
+| Playwright tự dựng dev server | `services/frontend/playwright.config.ts` (`webServer`, `reuseExistingServer: !process.env.CI`) | không dựng server thứ hai khi chạy browser acceptance |
+| Cách kiểm môi trường sạch của e2e | `e2e/canvas-native.spec.ts` đọc `package.json` qua `frontendRoot` | xác nhận đổi layout không làm đổi cách tính đường dẫn |
+| Kho dữ liệu giả lập + ép lỗi | `src/data/api.ts`, `src/data/mock.ts`, query `?mockFail=` | cô lập fixture, không cần dọn dẹp |
+| Build bằng Dockerfile, context = gốc repo | `services/frontend/Dockerfile`, `compose.yaml` | khuôn mẫu để viết `apps/backend/Dockerfile` |
+| Chặn TS 7 của Nest CLI | `node_modules/@nestjs/cli/lib/ui/errors.js` (bản cài thử) | căn cứ chọn TS 6 |
+
+**API/quy ước tái dùng, không phát minh mới:** `npm test` của từng app là entrypoint duy nhất;
+`docker compose --profile test run --rm <service>` là cách chạy; `PORT` là biến chuẩn của
+container; `HealthModule` đặt dưới `src/modules/` đúng quy ước module mà `AGENTS.md` sẽ ghi.
+
+**Biên bị ảnh hưởng:** đường dẫn `services/` → `apps/` (mã, doc, compose, Dockerfile); thêm một
+tiến trình và một image; `openspec/config.yaml` bị ghi đè.
+
+**Dependency thêm (chỉ trong `apps/backend/package.json`):** `@nestjs/{common,core,platform-express}`
+12.3.3, `reflect-metadata` 0.2.x, `rxjs` 7.8.x; dev: `@nestjs/cli` 12.0.x, `@nestjs/testing` 12.3.3,
+`typescript` ~6.0.3, `vitest` 4.x, `supertest` 7.x, `oxlint` + `oxlint-tsgolint`.
+
+**Được đánh dấu là đề xuất (chưa tồn tại, apply sẽ tạo):** `apps/backend/**` nói chung;
+`apps/backend/src/modules/health/**`; `apps/backend/src/main.ts` với hàm `resolvePort`;
+`apps/backend/Dockerfile`; service `backend`/`backend-test` trong `compose.yaml`. Không đường dẫn
+nào ở trên được viết như thể đã có.
+
+**Không tái dùng được vì không tồn tại:** root `package.json`, `npm run smoke`, `npm run build`,
+`npm run test:integration`, `npm run contracts:check`, `npm run test:e2e` (đã kiểm: không có file
+nào khai các script này), PostgreSQL, Redis, xác thực, tenant, cơ chế locale.
+
+## Phân loại quyết định (settled / apply tự chọn / cần người duyệt)
+
+Rule `design` mục 5 yêu cầu tách ba loại này và giải quyết câu hỏi ảnh hưởng phạm vi, hành vi, dữ
+liệu hay tương thích **trước khi** coi phần phụ thuộc là sẵn sàng.
+
+**Đã chốt, apply không được đổi:**
+
+- Layout `apps/frontend` + `apps/backend`, `git mv`, một `.git` ở gốc.
+- NestJS 12.3.x; TypeScript 6.0.x; **ESM** (`"type": "module"`, import đuôi `.js`).
+- Backend là modular monolith: `AppModule` + `src/modules/<domain>/`.
+- Test backend bằng Vitest + supertest; lint bằng `oxlint`/`oxlint-tsgolint` (theo scaffold).
+- `PORT` không hợp lệ → thoát mã ≠ 0, không mở socket (requirement R2 của spec).
+- Không có việc nào liên quan contract; không thêm `package.json` gốc; không CI.
+
+**Apply tự chọn (không cần hỏi lại, miễn giữ hành vi đã chốt):**
+
+- Tên hàm nội bộ (`resolvePort`), cách tách file trong `src/modules/health/`, tên biến, có dùng
+  `Logger` hay `console.error` cho dòng lỗi `PORT`.
+- Cách viết test: `supertest` trực tiếp hay qua helper; số ca biên thêm cho `resolvePort`.
+- Cách viết Dockerfile (số stage, có `npm ci --omit=dev` hay không) miễn image chạy `node dist/main.js`.
+- Thứ tự sửa các file tài liệu, nội dung câu chữ tiếng Việt (giữ đúng nghĩa đã chốt).
+
+**Cần người đặt việc duyệt trước khi coi là sẵn sàng:**
+
+- Đổi bất kỳ mục "Đã chốt" ở trên.
+- Thêm bất kỳ nghiệp vụ nào vào backend.
+- Thêm hạ tầng (PostgreSQL/Redis/xác thực/tenant) hoặc thêm `package.json` gốc.
+
+**Câu hỏi ảnh hưởng phạm vi/hành vi/dữ liệu/tương thích còn mở:** không còn. ESM đã được người
+đặt việc chốt; ba mục còn mở (nghiệp vụ đầu tiên, CI, có cần `package.json` gốc hay không) đều nằm
+ngoài phạm vi change nên không chặn cài đặt. Không mục nào ở đây dựa vào lịch sử chat: mọi quyết
+định đã chốt đều ghi trong file này.
 
 ## Test entrypoints, readiness và cô lập trạng thái
 
@@ -281,32 +392,21 @@ nên revert là đủ. Trước khi merge, nhánh change này không đụng `or
 
 ## Open Questions
 
-**Không câu nào chặn apply.** Change này đủ chốt để apply: mỗi lựa chọn đã có mặc định ghi trong
-Decisions, và không lựa chọn nào buộc phải viết lại artifact nếu đổi ý.
+### Đã chốt
 
-### Đã tự quyết, nêu ra để đổi nếu muốn
+- **ESM — người đặt việc chốt ngày 2026-11-05**, đúng mặc định của `nest new` 12: backend dùng
+  `"type": "module"`, import nội bộ ghi đuôi `.js`. Không còn là câu hỏi mở.
+- **Nest 12.x**: lấy major ổn định hiện hành (12.3.3) vì Nest không gắn nhãn LTS cho major. Đổi
+  sang 11.x chỉ là đổi số version, khung module và CLI không đổi.
+- **Không thêm `package.json` ở gốc repo** (không npm workspaces). Hệ quả phải biết: các lệnh
+  `npm run smoke`, `npm run build`, `npm run test:integration`, `npm run contracts:check`,
+  `npm run test:e2e` mà `operations.apply.guidance` nhắc tới **không tồn tại** ở repo này; design
+  thay bằng lệnh `docker compose` tương đương ở mục "Test entrypoints".
+- **`PORT` không hợp lệ phải làm dịch vụ dừng** (không lắng nghe sai chỗ) — chốt trong
+  `specs/service-health/spec.md`, requirement "PORT không hợp lệ làm dịch vụ dừng", kèm ba
+  scenario. Lý do là số đo ở mục "Giá trị mặc định và thứ tự ưu tiên" bên dưới.
 
-Ba mục dưới đây đổi được, nhưng **không** cùng một giá: (1) và (3) chỉ là đổi số version hoặc thêm
-file ở gốc; (2) rẻ nhất khi chốt **trước** lúc scaffold và đắt hơn nếu đổi sau khi đã viết mã —
-nên nếu đội có ý kiến về ESM/CJS thì nên nói ngay bây giờ.
-
-1. **Nest 12.x thay vì 11.x.** "LTS mới nhất" không có nghĩa xác định vì Nest không gắn nhãn LTS
-   cho major; tôi lấy major ổn định hiện hành (12.3.3). Muốn 11.x thì khung module và CLI không
-   đổi, chỉ đổi số version.
-2. **Backend dùng ESM (`"type": "module"`) theo mặc định của `nest new` 12**, nên import nội bộ
-   ghi đuôi `.js`. Đây là mục duy nhất nên chốt trước khi scaffold.
-   Đã đo: bỏ `"type": "module"` và đổi sang CJS **vẫn build + chạy được** (`nest build` thoát 0,
-   `dist/main.js` dùng `require()`, `curl` trả `Hello World!`), nhưng phải sửa thêm ba chỗ:
-   `await bootstrap()` ở top-level phải thành `void bootstrap()` (TS1378), import nội bộ bỏ đuôi
-   `.js`, và `moduleResolution: node` không dùng được (TS5098 + TS5107) nên vẫn phải để
-   `nodenext`. Tức CJS làm được, chỉ là ba chỉnh tay thêm — nên ESM vẫn là mặc định rẻ hơn.
-3. **Không thêm `package.json` ở gốc repo** (không npm workspaces). Vì thế các lệnh
-   `npm run smoke/build/test:integration/contracts:check/test:e2e` trong `operations.apply.guidance`
-   **không tồn tại**; design thay bằng lệnh `docker compose` tương đương. Muốn guidance chạy đúng
-   nguyên văn thì cần thêm `package.json` gốc + 5 script đó — việc này tôi **không** tự thêm vì nó
-   là thay đổi công cụ ở gốc repo, ngoài phạm vi "đổi cấu trúc + khởi tạo backend".
-
-### Ngoài phạm vi change này
+### Còn mở, không chặn apply
 
 - **Nghiệp vụ đầu tiên của backend là gì?** Chưa chốt, và **không** thuộc change này; sẽ là change
   riêng. Khung `HealthModule` cố ý không ám chỉ miền nào.
@@ -315,4 +415,4 @@ nên nếu đội có ý kiến về ESM/CJS thì nên nói ngay bây giờ.
 
 **Có thể bỏ nếu không muốn:** `HealthModule` + capability `service-health` là hành vi tối thiểu
 để khung backend kiểm được. Không cần nó thì xoá module, xoá `specs/service-health/` và phần kiểm
-tương ứng ở task 2.2–2.3; phần còn lại của change không đổi.
+tương ứng ở task 2.2–2.4; phần còn lại của change không đổi.

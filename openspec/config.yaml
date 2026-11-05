@@ -1,21 +1,18 @@
 schema: spec-driven
 
-# Project context — chỉ ghi ràng buộc mà agent không tự suy ra khi đọc code.
-context: |
-  Monorepo IVR-Callflow-PBX: mỗi service nằm ở services/<service>/ và KHÔNG có git riêng —
-  chỉ repo gốc có .git. Không chạy git init hay tạo .git trong thư mục service.
-
-  Mỗi service build bằng Dockerfile riêng với build context là gốc repo (để lấy contracts/).
-  Ứng dụng dựng bằng compose.yaml; test chạy qua profile `test`.
-
-  Contract dùng chung ở contracts/ tại gốc repo, một bản duy nhất; service import trực tiếp,
-  không chép bản sao vào service.
-
-  Nội dung tự nhiên (spec, tài liệu, commit message) viết tiếng Việt UTF-8 có dấu; giữ nguyên
-  tên file, identifier và thuật ngữ kỹ thuật.
-
-# Per-artifact rules
 rules:
+  proposal:
+    - >-
+      State the goal, in-scope behavior, explicit non-goals, and compatibility impact.
+      Keep these proportional to the change; do not add adjacent features or refactors
+      merely because they are related. Surface material ambiguity before declaring
+      the proposal ready.
+  specs:
+    - >-
+      Define observable behavior with concrete scenarios and expected outcomes.
+      Cover relevant boundaries, state transitions, authorization/tenant isolation,
+      and failure paths. Specify values and precedence where behavior depends on
+      them; do not leave externally visible decisions to the implementing agent.
   design:
     - >-
       Map each acceptance criterion to an observable verification scenario. Identify
@@ -31,6 +28,18 @@ rules:
       isolation relevant to the change, including Redis rate-limit state, RLS
       context, role/tenant, and locale when applicable. Do not authorize destructive
       setup or cleanup implicitly.
+    - >-
+      Ground the design in inspected implementation, nearby tests, and configuration.
+      Record the chosen approach and rationale, existing APIs/conventions to reuse,
+      affected boundaries/contracts, and dependencies. Distinguish observed facts,
+      proposed changes, and unresolved questions; label new paths as proposed.
+      Do not rely on chat history to communicate decisions to the apply agent.
+    - >-
+      Separate settled decisions, internal implementation details the apply agent
+      may choose, and decisions requiring user approval. Resolve questions affecting
+      scope, behavior, data, or compatibility before dependent implementation is
+      presented as ready. Give any remaining investigation a specific question,
+      discriminating check, and dependency; avoid generic codebase-exploration tasks.
   tasks:
     - >-
       Map every acceptance criterion to implementation and verification tasks.
@@ -40,8 +49,20 @@ rules:
       Include requirement-by-requirement verification and review before declaring
       completion. For web changes, include concrete Playwright scenarios from the
       design; do not replace UI acceptance with API-only checks.
+    - >-
+      Make each task a checkable behavioral deliverable, not a broad heading or a
+      line-by-line coding recipe. Include requirement/scenario references, the
+      inspected target module or boundary, dependencies where applicable, expected
+      observable outcome, and the verification command or concrete scenario. Reference
+      the design for reuse decisions and constraints rather than duplicating it.
+    - >-
+      Before presenting planning artifacts, reconcile every requirement/scenario
+      with implementation and verification tasks. Report missing coverage and
+      unresolved decisions explicitly; do not claim implementation readiness while
+      material behavior or scope decisions remain open. Keep scope and non-goals
+      consistent across proposal, specs, design, and tasks without inventing new
+      requirements merely to fill this checklist.
 
-# Per-operation guidance
 operations:
   apply:
     guidance:
@@ -111,9 +132,3 @@ operations:
         verification; preserve the CLI-controlled ready/blocked/all_done state and
         any user approval or cleanup gates. No automatic commit, archive, or resource
         deletion is authorized by this guidance.
-
-      # Repo này chưa có package.json ở gốc và KHÔNG có các script npm run smoke /
-      # build / test:integration / contracts:check / test:e2e. Entrypoint thật nằm ở
-      # từng app và chạy qua container — hai mục dưới thay cho danh sách đó.
-      - "Chạy kiểm bằng container: docker compose --profile test run --rm frontend-test npm test"
-      - "Sau khi sửa mã, kiểm thêm: docker compose build frontend"
