@@ -281,20 +281,20 @@ nên revert là đủ. Trước khi merge, nhánh change này không đụng `or
 
 ## Open Questions
 
-**Không câu nào chặn apply.** Change này đã đủ chốt để apply: mọi lựa chọn bên dưới đã có mặc định
-được ghi trong Decisions, và đổi lại được mà không phải làm lại change.
+**Không câu nào chặn apply.** Change này đủ chốt để apply: mỗi lựa chọn đã có mặc định ghi trong
+Decisions, và không lựa chọn nào buộc phải viết lại artifact nếu đổi ý.
 
 ### Đã tự quyết, nêu ra để đổi nếu muốn
 
-Ba lựa chọn dưới đây có thể đi hướng khác mà **không** ảnh hưởng phần còn lại của change. Nói một
-câu là đổi, không cần chờ.
+Ba mục dưới đây đổi được, nhưng **không** cùng một giá: (1) và (3) chỉ là đổi số version hoặc thêm
+file ở gốc; (2) rẻ nhất khi chốt **trước** lúc scaffold và đắt hơn nếu đổi sau khi đã viết mã —
+nên nếu đội có ý kiến về ESM/CJS thì nên nói ngay bây giờ.
 
 1. **Nest 12.x thay vì 11.x.** "LTS mới nhất" không có nghĩa xác định vì Nest không gắn nhãn LTS
    cho major; tôi lấy major ổn định hiện hành (12.3.3). Muốn 11.x thì khung module và CLI không
    đổi, chỉ đổi số version.
 2. **Backend dùng ESM (`"type": "module"`) theo mặc định của `nest new` 12**, nên import nội bộ
-   ghi đuôi `.js`. Muốn CommonJS cho quen thì phải chọn lại lúc scaffold — đổi sau khi đã viết mã
-   sẽ tốn công hơn, nên nếu đội quen CJS thì nên chốt ngay bây giờ.
+   ghi đuôi `.js`. Đây là mục duy nhất nên chốt trước khi scaffold.
    Đã đo: bỏ `"type": "module"` và đổi sang CJS **vẫn build + chạy được** (`nest build` thoát 0,
    `dist/main.js` dùng `require()`, `curl` trả `Hello World!`), nhưng phải sửa thêm ba chỗ:
    `await bootstrap()` ở top-level phải thành `void bootstrap()` (TS1378), import nội bộ bỏ đuôi
