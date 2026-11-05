@@ -58,8 +58,10 @@
       hỗ trợ TS 7). Kiểm: `grep -n "services/" AGENTS.md` rỗng; mục TypeScript nêu đúng mã lỗi
       `TS 7 chưa có compiler API`.
 - [ ] 4.3 `openspec/config.yaml`: sửa `context` sang `apps/<app>/`, giữ nguyên các ràng buộc còn
-      lại (một `.git`, contract một bản, tiếng Việt). Kiểm: `openspec context` không còn
-      `services/`; `openspec validate --specs` xanh.
+      lại (một `.git`, contract một bản, tiếng Việt). Kiểm: `openspec instructions apply --change
+      apps-modular-monolith --json` trả `context` đã sửa và không còn `services/`
+      (`openspec context` chỉ in working set của root, không in `context` trong config);
+      `openspec validate --specs` xanh.
 - [ ] 4.4 `apps/frontend/README.md`: đổi `services/frontend` → `apps/frontend`. Kiểm:
       `grep -rn "services/" apps/frontend/README.md` rỗng.
 

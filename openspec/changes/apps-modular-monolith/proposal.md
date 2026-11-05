@@ -22,7 +22,7 @@ Change này chỉ tạo bộ artifact propose; **không** đổi mã nguồn. Tr
   nghiệp vụ nào (xem Open Questions).
 - **TypeScript 6.x, không phải 7**: NestJS CLI 12 hiện chặn TypeScript 7 vì TS 7.0 chỉ phát hành
   `tsc`, chưa có compiler API mà `nest build` cần (đo được, xem `design.md`). Đúng như yêu cầu,
-  hạ xuống TS 6 cho cả hai app.
+  hạ xuống TS 6 cho backend. Frontend đang ở `~6.0.3` nên **không phải đổi**.
 - Build/run: thêm `apps/backend/Dockerfile` (multi-stage, context = gốc repo như frontend),
   service `backend` trong `compose.yaml`, profile `test` cho test backend.
 - Tài liệu và chính sách: `README.md`, `AGENTS.md`, `openspec/config.yaml` mô tả layout `apps/`,
