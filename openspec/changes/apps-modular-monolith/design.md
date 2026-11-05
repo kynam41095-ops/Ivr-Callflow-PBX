@@ -6,10 +6,12 @@ Xem `proposal.md` — Why. Hiện trạng đo trên máy này ngày 2026-11-05:
 
 - Repo chỉ có `services/frontend` (React 19 + Vite 8 + Vitest 5 + Playwright 1.63, TypeScript
   `~6.0.3`). `npm test` trong profile `test` xanh: **64 unit + 81 e2e**.
-- `contracts/flow-document.schema.json` ở gốc repo; `services/frontend/src/contracts.ts` trỏ
-  `"../../../contracts/flow-document.schema.json"` — đúng **ba** cấp từ `src/`.
 - `compose.yaml` có hai service `frontend` (nginx, cổng 8080) và `frontend-test` (profile `test`,
-  image Playwright, mount cả repo).
+  image Playwright, mount cả repo). Không có database, Redis, xác thực hay đa tenant nào.
+- Gốc repo **không** có `package.json`: không tồn tại `npm run smoke`, `npm run build`,
+  `npm run test:integration`, `npm run contracts:check`, `npm run test:e2e`. Entrypoint thật là
+  script trong `services/frontend/package.json` (`dev`, `test`, `typecheck`, `build`, `lint`) chạy
+  qua container.
 - Chưa có `.github/workflows`, chưa có CI nào khác.
 - Hai nhánh remote còn commit riêng chưa vào `develop` (`agent/readme-agent-line-…`,
   `wip/gitlab-intake-scripts`) đều dựa trên layout `services/`; `issue-1-…` và `issue-5-…` chỉ là
@@ -36,17 +38,50 @@ Vì vậy "LTS mới nhất" được hiểu là **dòng major ổn định hi�
 
 - Một layout `apps/frontend` + `apps/backend`, không còn `services/`.
 - Backend NestJS bản ổn định mới nhất, TypeScript phiên bản cao nhất mà bộ tool của Nest còn chạy.
-- Cả hai app build bằng Dockerfile riêng, chung `compose.yaml`, chung `contracts/` ở gốc.
+- Cả hai app build bằng Dockerfile riêng, chung `compose.yaml`.
 - Frontend giữ nguyên 64 unit + 81 e2e xanh sau khi đổi đường dẫn.
 
 **Non-Goals:**
 
-- Không viết nghiệp vụ phía máy chủ (đầu số, kịch bản, phiên bản, media) — endpoint nghiệp vụ
-  đầu tiên cần contract HTTP thật, hiện chỉ có `contracts/flow-document.schema.json`.
+- **Không có việc nào liên quan contract trong change này**: `contracts/` giữ nguyên tại gốc repo,
+  không di chuyển, không sửa, không thêm endpoint nào theo contract. Người đặt việc đã nói rõ chỉ
+  cần đổi cấu trúc repo và khởi tạo backend trước.
+- Không viết nghiệp vụ phía máy chủ (đầu số, kịch bản, phiên bản, media). Backend chỉ là khung.
 - Không thêm PostgreSQL, Redis, hàng đợi hay xác thực.
 - Không nối frontend sang gọi HTTP thật; `src/data/api.ts` vẫn là kho giả lập.
 - Không đổi `openspec/specs/**` (tám capability hiện có giữ nguyên yêu cầu).
-- Không dựng CI GitHub Actions trong change này (repo chưa có CI; thêm CI là việc riêng).
+- Không dựng CI GitHub Actions trong change này.
+
+## Acceptance criteria và cách kiểm
+
+Mỗi tiêu chí dưới đây là một quan sát được, không phải một lần chạy suite. `S1`–`S4` là scenario
+trong `specs/service-health/spec.md`; `AC-*` là tiêu chí cấu trúc của chính change này lấy từ
+`proposal.md`.
+
+| # | Tiêu chí (nguồn) | Điều kiện trước | Đầu vào / hành động | Kết quả mong đợi | Bằng chứng |
+|---|---|---|---|---|---|
+| S1 | Cổng mặc định khi không có `PORT` (`service-health` R1) | Image backend đã build; biến `PORT` **không được đặt** trong môi trường | `docker run --rm -p 3001:3000 ivr-backend` (**không** truyền `-e PORT`), rồi `curl -fsS http://127.0.0.1:3001/health` | Dịch vụ lắng nghe `3000` trong container; `curl` trả `200` JSON `{"status":"ok"}` | mã thoát `curl` = 0 + thân phản hồi; log `Nest application successfully started` |
+| S2 | Cổng theo `PORT` khác (`service-health` R1) | Image backend đã build | `docker run --rm -e PORT=4010 -p 4010:4010 ivr-backend`, `curl http://127.0.0.1:4010/health`, `curl http://127.0.0.1:3000/health` | `curl` cổng `4010` = `200`; `curl` cổng `3000` **thất bại** (`curl` mã thoát ≠ 0, không kết nối được) | hai mã thoát `curl` khác nhau, không suy đoán |
+| S3 | `GET /health` trả sẵn sàng (`service-health` R2) | Dịch vụ đã khởi động xong (chờ log `successfully started`, không `sleep` mù) | `curl -i http://127.0.0.1:<cổng>/health` | Dòng trạng thái `200`; thân JSON parse được, `status` = `"ok"`; không cần header xác thực | `curl -i` đầy đủ + `jq -e '.status=="ok"'` mã thoát 0 |
+| S4 | Đường dẫn chưa khai báo (`service-health` R2) | Dịch vụ đã khởi động xong | `curl -o /dev/null -s -w '%{http_code}' http://127.0.0.1:<cổng>/khong-ton-tai` | In ra `404` | giá trị in ra đúng `404` |
+| AC-1 | Layout mới, không còn `services/` (`proposal.md` What Changes) | Working tree sạch ở nhánh ticket | `git mv services/frontend apps/frontend`; `test -f apps/frontend/package.json`; `test ! -d services` | Cả hai lệnh `test` thoát 0; `git status` ghi nhận rename (`R`), không phải `D`+`A` hàng loạt | đầu ra `git status --short` bắt đầu bằng `R` cho các file đã đổi tên |
+| AC-2 | Frontend không hồi quy sau khi đổi đường dẫn (Goals) | `apps/frontend` đã ở vị trí mới; chưa sửa gì thêm | `docker compose --profile test run --rm frontend-test npm test` | **64 unit + 81 e2e** xanh, giống baseline đo hôm nay | log có `64 passed` và `81 passed`; mã thoát 0 |
+| AC-3 | Frontend build được ở đường dẫn mới | `apps/frontend` đã ở vị trí mới | `docker compose build frontend` | Build thành công; image phục vụ được trang chủ | mã thoát 0; `curl -fsS http://127.0.0.1:8080/` chứa `id="root"` |
+| AC-4 | Backend khởi tạo đúng khung modular monolith (`proposal.md` What Changes) | Repo đã có `apps/` | Tạo `apps/backend` rồi đọc cây `src/` | Có `main.ts`, `app.module.ts`, `src/modules/health/`; **không** có `.git` trong `apps/backend`; `@nestjs/*` ghim cứng version | `find apps -name .git` rỗng; `grep -c '"@nestjs/common": "\^'` = 0 |
+| AC-5 | Backend test xanh trong container (Goals) | `apps/backend` có source + test; image test dựng được | `docker compose --profile test run --rm backend-test npm test` | Unit test của health controller và e2e test `GET /health` đều xanh | log `Test Files … passed`, mã thoát 0 |
+| AC-6 | Backend đóng gói và chạy được (`proposal.md` What Changes — Dockerfile + compose) | `apps/backend/Dockerfile` có | `docker build -f apps/backend/Dockerfile -t ivr-backend .`; `docker compose up -d backend`; `curl` health | Build exit 0; `curl /health` trả `{"status":"ok"}`; **sau đó** `docker compose down` | ba mã thoát 0 + thân phản hồi; `docker compose ps` không còn service sót |
+| AC-7 | Tài liệu không còn đường dẫn cũ (`AGENTS.md` kiểm trước khi báo xong) | Mọi file đã sửa xong | `grep -rn "services/" --include=*.md --include=*.ts --include=*.json --include=*.yaml --include=Dockerfile .` | Chỉ còn kết quả trong `openspec/changes/**` (lịch sử) | danh sách đường dẫn khớp, không có file mã nguồn |
+
+Ghi chú về role/tenant: repo **không** có xác thực, không có tenant, người dùng luôn là ẩn danh —
+nên cột "role/tenant" ở trên đồng nhất là "không áp dụng"; bất kỳ yêu cầu phân quyền nào cũng nằm
+ngoài change này. Đường dẫn lỗi (`S4`) là failure path duy nhất mà khung hiện có.
+
+**Bẫy đã kiểm, đừng mắc lại:** `docker run -e PORT=` đặt biến thành **chuỗi rỗng**, và `??` trong
+`process.env.PORT ?? 3000` **không** bắt được chuỗi rỗng — đo được: `PORT= node -e
+"console.log(process.env.PORT ?? 3000)"` in ra `""`, không phải `3000`. Vì vậy S1 phải chạy
+container **không** có biến `PORT`; muốn chấp nhận cả chuỗi rỗng thì mã phải dùng `||` hoặc kiểm
+`.trim() !== ""`, và spec `service-health` chỉ ràng buộc trường hợp "không đặt", nên mã giữ `??`
+là đủ và **không** được nới spec để che lỗi gọi sai.
 
 ## Decisions
 
@@ -84,10 +119,11 @@ Yêu cầu của người đặt việc ghi rõ `apps/frontend`, `apps/backend`.
 apps/frontend` giữ lịch sử từng file (git nhận diện rename) và giữ một `.git` duy nhất ở gốc.
 Không copy-rồi-xoá: cách đó làm mất blame.
 
-`apps/frontend/src` vẫn cách gốc repo **ba** cấp, đúng bằng `services/frontend/src` trước đây, nên
-`src/contracts.ts`, `vite.config.ts` (`fs.allow: ["../.."]`) và hai chỗ tính `repoRoot` trong e2e
-**không phải sửa một dòng nào**. Đây là lý do chọn `apps/` thay vì `packages/` hay lồng thêm cấp:
-độ sâu không đổi thì bán kính ảnh hưởng của việc đổi layout nhỏ nhất.
+`apps/frontend/src` cách gốc repo đúng **ba** cấp, bằng `services/frontend/src` trước đây, nên mọi
+đường dẫn tương đối tính theo độ sâu đó (`src/contracts.ts`, `vite.config.ts` với
+`fs.allow: ["../.."]`, hai chỗ tính `repoRoot` trong e2e) **không phải sửa giá trị nào**. Đây là
+lý do chọn `apps/` thay vì lồng thêm cấp: độ sâu không đổi thì bán kính ảnh hưởng của việc đổi
+layout nhỏ nhất, và AC-2 dùng lại được nguyên baseline.
 
 **3. Backend là modular monolith: `AppModule` + `src/modules/<domain>/`.**
 
@@ -102,7 +138,7 @@ giác nghiệp vụ đã có.
 Khung `nest new` bản 12 sinh sẵn `vitest.config.ts` + `vitest.config.e2e.ts` và `npm test` =
 `vitest run`. Giữ nguyên lựa chọn của framework: frontend đã dùng Vitest nên cả repo còn một
 runner, và tránh `ts-jest` (peer `<7`). `supertest` cho phép test `GET /health` mà không mở cổng
-thật.
+thật, nên AC-5 không cần cấp cổng và không thể đụng cổng của ai khác.
 
 **5. TypeScript 6 kéo theo tsconfig kiểu scaffold, không dùng `tsc` trần.**
 
@@ -113,13 +149,12 @@ ESM (`"type": "module"`) nên import nội bộ phải ghi đuôi `.js` — đú
 **6. Container hoá: `apps/backend/Dockerfile` multi-stage, context = gốc repo.**
 
 Giống frontend: `node:24-bookworm-slim` build → image runtime gọn chỉ chạy `node dist/main.js`.
-Context là gốc repo để nhất quán với frontend và để sẵn đường cho việc backend import `contracts/`
-sau này.
+Context là gốc repo để nhất quán với frontend, không phải để đọc contract (Non-Goals).
 
 Hai biến cho hai việc khác nhau, không lẫn: **`PORT`** là cổng tiến trình lắng nghe bên trong
-container (`service-health` kiểm đúng biến này); **`BACKEND_PORT`** là cổng công bố trên máy host,
-dùng trong `compose.yaml` (`"${BACKEND_PORT:-3000}:3000"`), để không đụng cổng khác trên máy dev.
-Container luôn chạy với `PORT=3000` trừ khi ai đó cố ý đổi.
+container (`service-health` kiểm đúng biến này, S1/S2); **`BACKEND_PORT`** là cổng công bố trên
+máy host, dùng trong `compose.yaml` (`"${BACKEND_PORT:-3000}:3000"`), để không đụng cổng khác
+trên máy dev. Container luôn chạy với `PORT=3000` trừ khi ai đó cố ý đổi.
 
 **7. Compose: thêm `backend` và `backend-test`; đổi `frontend-test` sang đường dẫn mới.**
 
@@ -133,6 +168,76 @@ volume. `backend-test` dùng `node:24-bookworm-slim` (không cần Chromium) v�
 ngắn về quy ước module backend (một miền = một module dưới `src/modules/`) và ghim TypeScript 6
 kèm lý do, để lần sau không ai nâng TS 7 rồi vỡ `nest build` mà không biết vì sao.
 
+## Test entrypoints, readiness và cô lập trạng thái
+
+**Working directory:** mọi lệnh chạy từ **gốc repo** (nơi có `compose.yaml`). Không `cd` vào
+`apps/*` để chạy `docker compose`, vì biến `REPO_DIR` và mount của profile `test` tính theo gốc.
+
+**Entrypoint (đã kiểm là tồn tại, không phải giả định):**
+
+| Việc | Lệnh | Ghi chú |
+|---|---|---|
+| Unit + e2e frontend | `docker compose --profile test run --rm frontend-test npm test` | `npm test` = `vitest run && playwright test --pass-with-no-tests` |
+| Chỉ Playwright, có tham số | `docker compose --profile test run --rm frontend-test npx playwright test <file> --reporter=line` | Không chạy Playwright từ `services/frontend/e2e` bằng `cd` |
+| Typecheck / lint / build frontend | `… frontend-test npm run typecheck` / `npm run lint` / `npm run build` | dùng khi sửa `apps/frontend` |
+| Test backend | `docker compose --profile test run --rm backend-test npm test` | Vitest unit + e2e trong một lần |
+| Build image | `docker compose build frontend backend` | hoặc `docker build -f apps/<app>/Dockerfile -t ivr-<app> .` |
+
+**Service readiness:** `apps/frontend/playwright.config.ts` đã có `webServer` (`npm run dev --
+--port 5173 --strictPort`, `port: 5173`, `reuseExistingServer: !process.env.CI`) nên Playwright tự
+dựng dev server; **không** dựng server thứ hai và không chạy server dài hạn trong một lệnh shell
+hữu hạn. Với backend, chờ log `Nest application successfully started` rồi mới `curl`, thay vì
+`sleep` một con số đoán được. Nếu một cổng đang bị chiếm, đó là **blocker môi trường**, không phải
+lỗi ứng dụng: kiểm `ss -ltnp` và dùng cổng khác qua biến, không `kill` tiến trình lạ.
+
+**Playwright:** bản `1.63.0`, khớp tag image `mcr.microsoft.com/playwright:v1.63.0-noble`. Môi
+trường container **không có GUI**, nên chỉ chạy được **headless** — điều này phải ghi trong
+apply-report thay vì ngầm hiểu là "headed".
+
+**Cô lập fixture:** bộ e2e hiện tại chạy trên kho giả lập trong bộ nhớ (`src/data/mock.ts`), mỗi
+lần tải trang là một kho mới; lỗi được ép bằng query `?mockFail=<tên hàm>` (xem
+`src/data/api.ts`). Không test nào ghi ra đĩa. Vì vậy change này **không** cần dọn dẹp gì giữa các
+test và cũng không được phép dọn dẹp gì.
+
+**Những thứ không áp dụng — kèm bằng chứng, không phải bỏ qua:**
+
+- **Redis / rate-limit bucket:** không có. `compose.yaml` chỉ khai `frontend` và `frontend-test`;
+  `services/frontend/package.json` không có dependency Redis; không có middleware rate-limit trong
+  `src/`. Không có bucket nào để tính hay xoá.
+- **RLS context:** không có database, nên không có row-level security. "Zero row" không được dùng
+  làm bằng chứng cho bất cứ điều gì trong change này.
+- **Role/tenant:** không có xác thực và không có khái niệm tenant trong mã; mọi yêu cầu HTTP tới
+  backend là ẩn danh. Không có fixture role/tenant để chuẩn bị.
+- **Locale:** giao diện chỉ có tiếng Việt, không có cơ chế đổi locale; Playwright dùng device
+  `Desktop Chrome` mặc định và không override `locale`. Trường `timezone` trong inspector là dữ
+  liệu nghiệp vụ của node "Điều kiện theo lịch", không phải locale của môi trường test.
+- **Thiết lập/dọn dẹp phá huỷ:** không được cấp phép. Change này không được `docker volume rm`,
+  không `docker compose down -v`, không xoá `test-results/` của lượt chạy khác.
+
+## Browser acceptance (Playwright)
+
+Change này **không** thêm hay đổi hành vi giao diện, nên không có scenario Playwright mới. Phần
+browser acceptance ở đây là **hồi quy trên giao diện thật**, chạy bằng Chromium thật trong image
+Playwright, sau khi đường dẫn đổi:
+
+- **Scenario B1 — giao diện còn dựng đúng ở layout mới:** mở `/`, chờ canvas IVR xuất hiện; kiểm
+  các phần tử gốc (`#root` trong `index.html`, palette, `.react-flow__node`) hiện diện. Nguồn: các
+  spec e2e hiện có (`tokens`, `chrome-visual`, `builder-palette`).
+- **Scenario B2 — hành vi sau khi tải lại vẫn đúng như đã chốt:** `e2e/reload.spec.ts`
+  (TC-FLOW-025) tạo đầu số + lưu bản nháp, `page.reload()`, rồi assert trạng thái **về đúng gốc**
+  (kho giả lập trong bộ nhớ). Quy tắc design nói "persistence after reload"; ở change này hành vi
+  đúng là **reset**, không phải persist — nên scenario kiểm đúng chiều đó và **không** được viết
+  lại thành assert persistence, vì làm vậy là đổi hành vi đã có chứ không phải hồi quy.
+- **Scenario B3 — đường dẫn lỗi ở tầng giao diện:** `e2e/error-states.spec.ts` + cơ chế
+  `?mockFail=` kiểm `[role="alert"]` và `button[data-testid="retry"]`. Không đổi trong change này,
+  nhưng là failure path đang có và phải còn xanh.
+
+Ba scenario trên chạy bằng **thao tác và assert UI thật** (`page.goto`, `click`, `dragTo`,
+`expect(locator)`), không thay bằng kiểm API. Bằng chứng cần giữ: log Vitest/Playwright (gồm
+`81 passed`), ảnh `test-results/tc-flow-034/{numbers,builder,drawer}.png` do
+`e2e/chrome-visual.spec.ts` sinh ra, phiên bản Playwright, và câu "headless vì container không có
+GUI".
+
 ## Risks / Trade-offs
 
 - **[Đổi layout làm hỏng nhánh remote còn sống]** → `agent/readme-agent-line-…` và
@@ -140,8 +245,8 @@ kèm lý do, để lần sau không ai nâng TS 7 rồi vỡ `nest build` mà kh
   là con trỏ vào commit đã có trong `develop` nên không ảnh hưởng. Không rebase hộ; ghi rõ trong
   tasks là phải rebase sau khi merge, và change này không sửa nhánh của người khác.
 - **[Nest 12 phát hành ESM, `"type": "module"`]** → import nội bộ phải ghi `.js`; quên là lỗi
-  runtime `ERR_MODULE_NOT_FOUND`. Giảm thiểu: giữ nguyên quy ước scaffold sinh ra, test e2e bắt
-  được vì nó boot thật `AppModule`.
+  runtime `ERR_MODULE_NOT_FOUND`. Giảm thiểu: giữ nguyên quy ước scaffold sinh ra, và AC-4/AC-5
+  boot thật `AppModule` nên lỗi này lộ ngay.
 - **[Nest 12 mới ra ~2 tháng]** → còn ít kinh nghiệm vận hành so với 11.x. Nếu muốn thận trọng,
   chọn dòng 11.x trong lúc apply: cùng khung module, cùng CLI, chỉ khác major. Ghi rõ trong
   proposal nếu đổi để người duyệt thấy.
@@ -150,8 +255,6 @@ kèm lý do, để lần sau không ai nâng TS 7 rồi vỡ `nest build` mà kh
 - **[Vitest 5 ở frontend, Vitest 4.x trong scaffold backend]** → hai app giữ version riêng vì
   mỗi app có `package.json` riêng; không gộp workspace lúc này (chưa có package dùng chung nào để
   chia sẻ). Rủi ro thấp vì test chạy trong từng image riêng.
-- **[Image backend không mang `contracts/`]** → hiện chưa cần; khi backend đọc contract thì
-  Dockerfile `COPY contracts contracts` như frontend đang làm.
 - **[Thêm service `backend` vào compose khi mới có khung]** → image chạy nhưng không phục vụ
   nghiệp vụ nào ngoài `/health`. Chấp nhận: đó chính là mục tiêu "khung chạy được, kiểm được".
 
@@ -160,34 +263,23 @@ kèm lý do, để lần sau không ai nâng TS 7 rồi vỡ `nest build` mà kh
 1. `git mv services/frontend apps/frontend`; xoá thư mục `services/` rỗng.
 2. Sửa đường dẫn: `README.md`, `AGENTS.md`, `openspec/config.yaml`, `apps/frontend/Dockerfile`,
    `apps/frontend/README.md`, `compose.yaml`.
-3. Kiểm frontend trước khi động vào backend: `docker compose --profile test run --rm frontend-test
-   npm test` phải xanh 64 + 81 như baseline, `docker compose build frontend` phải thành công. Đây
-   là chốt chặn: nếu bước này đỏ thì lỗi nằm ở việc đổi layout, chưa liên quan backend.
+3. Chốt chặn đổi layout: AC-2 và AC-3 phải xanh **trước khi** động vào backend. Nếu đỏ, lỗi nằm ở
+   việc đổi layout.
 4. Dựng `apps/backend/` từ `nest new` (ESM, TS 6, Vitest), ghim version cụ thể, thêm
    `HealthModule`, `main.ts` đọc `PORT`.
 5. Thêm `apps/backend/Dockerfile`, service `backend` + `backend-test` trong `compose.yaml`.
 6. Cập nhật `README.md` gốc (bảng app, lệnh build/test) và `AGENTS.md`.
-7. Nghiệm thu: test frontend xanh, `npm test` backend xanh, `docker compose build frontend
-   backend` thành công, `curl localhost:3000/health` trả `{"status":"ok"}` từ container.
+7. Nghiệm thu: AC-1…AC-7, ghi bảng coverage vào `apply-report.md`.
 
 **Rollback:** `git revert` commit đổi layout; không có migration dữ liệu, không có thay đổi schema
 nên revert là đủ. Trước khi merge, nhánh change này không đụng `origin/develop`.
 
 ## Open Questions
 
-Không câu nào chặn việc apply change này: change chỉ đổi layout và dựng khung. Chúng được ghi lại
-để không ai tưởng khung backend đã là một phần nghiệp vụ.
+Không câu nào chặn việc apply change này — change chỉ đổi layout và dựng khung.
 
-- **Nghiệp vụ đầu tiên của backend là gì?** Chưa có contract HTTP nào ngoài
-  `contracts/flow-document.schema.json`. `src/data/api.ts` chỉ **nhắc tên** vài endpoint trong
-  comment (`GET /flows/{flowId}/versions/{versionId}`, `POST /flows/{flowId}/versions`,
-  `POST /flows`, `GET /media`, `GET /resources/queues`, `POST /admin/dids`) và trỏ tới
-  `builder-api.yaml`, nhưng file đó **không có trong repo**. Change này cố ý dừng ở khung; cần
-  người đặt việc chốt miền nghiệp vụ nào làm trước và cung cấp contract tương ứng, thay vì tự
-  đoán hình dạng API.
-- **Frontend có chuyển sang gọi backend thật trong đợt này không?** Mặc định là **không** (giữ kho
-  giả lập), vì đổi `api.ts` sang HTTP là thay đổi hành vi của tám capability đang có và cần
-  contract thật.
+- **Nghiệp vụ đầu tiên của backend là gì?** Chưa chốt, và **không** thuộc change này; sẽ là change
+  riêng. Khung `HealthModule` cố ý không ám chỉ miền nào.
 - **Có cần CI (GitHub Actions) cho hai app không?** Repo chưa có CI; nếu muốn, nên là change
   riêng để không trộn với việc đổi layout.
 

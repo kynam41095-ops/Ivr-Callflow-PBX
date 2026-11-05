@@ -14,16 +14,106 @@ context: |
   Nội dung tự nhiên (spec, tài liệu, commit message) viết tiếng Việt UTF-8 có dấu; giữ nguyên
   tên file, identifier và thuật ngữ kỹ thuật.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
+# Per-artifact rules
+rules:
+  design:
+    - >-
+      Map each acceptance criterion to an observable verification scenario. Identify
+      preconditions, role/tenant, input, action, expected result, and evidence. Cover
+      relevant boundaries, state transitions, authorization, and failure paths;
+      a passing suite alone does not establish requirement coverage.
+    - >-
+      For web changes, plan real Playwright browser acceptance against the permitted
+      frontend/backend environment, including UI assertions and persistence after
+      reload where required. State why browser acceptance is inapplicable otherwise.
+    - >-
+      Specify test entrypoints, working directory, service readiness, and fixture
+      isolation relevant to the change, including Redis rate-limit state, RLS
+      context, role/tenant, and locale when applicable. Do not authorize destructive
+      setup or cleanup implicitly.
+  tasks:
+    - >-
+      Map every acceptance criterion to implementation and verification tasks.
+      Group work into small end-to-end behavioral slices and verify risky contract
+      or runtime assumptions before building dependent functionality.
+    - >-
+      Include requirement-by-requirement verification and review before declaring
+      completion. For web changes, include concrete Playwright scenarios from the
+      design; do not replace UI acceptance with API-only checks.
 
-# Per-operation guidance (optional)
+# Per-operation guidance
 operations:
   apply:
     guidance:
+      - >-
+        Before implementation, reconcile acceptance criteria in the supplied specs
+        and design with the task list. Maintain a concise coverage table in the
+        change's apply-report.md: criterion/source, implementation task, verification
+        scenario, status, and evidence. Use not implemented, implemented, verified,
+        or blocked; do not silently omit criteria or invent new requirements.
+      - >-
+        Use tasks.md as the authoritative checklist; internal todos are only a
+        working view. Follow the built-in exact-checkbox refresh workflow. Mark a
+        task complete only when its specified deliverable and verification are met;
+        keep implementation, verification, review, and user acceptance distinct.
+      - >-
+        Inspect current package scripts and test configuration before choosing
+        commands. Run verification from the repository root: npm run smoke for
+        infrastructure, npm run build, npm run test:integration, npm run
+        contracts:check, and npm run test:e2e as relevant to the change. These are
+        existing entrypoints, not a requirement to rerun every suite after each edit.
+        Pass targeted Playwright arguments through npm run test:e2e -- <arguments>;
+        do not launch it from tests/e2e.
+      - >-
+        Before browser acceptance, confirm dependencies, built artifacts, permitted
+        environment, infrastructure readiness, and role/tenant/locale fixtures.
+        Inspect Playwright webServer configuration and let it manage app servers;
+        verify any reused server belongs to this worktree and serves the intended
+        build/environment. Do not start duplicate servers or run long-lived servers
+        in finite shell commands. Missing readiness is an environment blocker, not
+        evidence of an application defect.
+      - >-
+        Isolate test state using existing fixture conventions. Account for Redis
+        rate-limit buckets and use the correct RLS context; zero visible or affected
+        rows do not prove an empty database. Do not flush shared state, reset a DB,
+        or destroy resources without the required authorization.
+      - >-
+        On failure, record the observed error, a specific hypothesis, a discriminating
+        check, and its result before changing code. Distinguish product defects from
+        fixture, locator, environment, and invocation errors. Preserve full logs and
+        the original exit code without secrets; read saved output instead of rerunning
+        solely because a filter hid the error. Do not increase timeouts or weaken
+        assertions to mask an unexplained failure.
+      - >-
+        Implement and verify one behavioral slice at a time. Reuse existing scoped
+        APIs and conventions before adding public exports or contract changes. If
+        runtime evidence contradicts the design, report the discrepancy and follow
+        the built-in artifact-update/approval workflow rather than silently changing
+        the mechanism or narrowing acceptance criteria.
+      - >-
+        For web acceptance, use real Playwright UI actions and assertions; run headed
+        when GUI is available and state when only headless is possible. Record the
+        Playwright version, environment, scenarios/criteria exercised, actual results,
+        reproduction commands, artifact paths, limitations, and test resources to
+        clean up in apply-report.md. Do not delete logs or artifacts while a run is
+        active or report a backgrounded process as a passing result.
+      - >-
+        Before requesting review, reconcile the coverage table against every
+        acceptance criterion, including lifecycle and boundary behavior. Give the
+        reviewer the spec/task scope, design deviations, evidence, pending criteria,
+        standard commands/environment, and review round. Ask for semantic requirement
+        coverage and security/state invariants, not only another suite run; do not
+        claim reviewed without a completed verdict.
+      - >-
+        At handoff or completion, state implemented, verified, reviewed, and accepted
+        status separately, with remaining blockers. Test counts and checked boxes are
+        not proof of complete behavior. After relevant edits, refresh affected
+        verification; preserve the CLI-controlled ready/blocked/all_done state and
+        any user approval or cleanup gates. No automatic commit, archive, or resource
+        deletion is authorized by this guidance.
+
+      # Repo này chưa có package.json ở gốc và KHÔNG có các script npm run smoke /
+      # build / test:integration / contracts:check / test:e2e. Entrypoint thật nằm ở
+      # từng app và chạy qua container — hai mục dưới thay cho danh sách đó.
       - "Chạy kiểm bằng container: docker compose --profile test run --rm frontend-test npm test"
       - "Sau khi sửa mã, kiểm thêm: docker compose build frontend"
