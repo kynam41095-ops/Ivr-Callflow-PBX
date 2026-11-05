@@ -11,3 +11,4 @@ playwright/.cache/
 /.dsh/
 /.obsidian/
 /.omp/
+__pycache__/
