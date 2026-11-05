@@ -75,7 +75,7 @@ giao diện thật**, chạy bằng Chromium thật trong image Playwright, sau 
 - **Scenario B3 — đường dẫn lỗi ở tầng giao diện:** `e2e/error-states.spec.ts` chạy và xanh — 8 test
   `✓ 20`, `✓ 26`, `✓ 29`, `✓ 33`, `✓ 37`, `✓ 38`, `✓ 39`, `✓ 42` trong log.
 - **Ảnh sinh lại:** `apps/frontend/test-results/tc-flow-034/{numbers,builder,drawer}.png`
-  (mtime `2026-11-05 22:59:57`, kích thước 59 575 / 113 235 / 131 844 bytes) do `chrome-visual.spec.ts` ghi ra.
+  (mtime `2026-11-05 23:13:36`, kích thước 59 575 / 113 235 / 131 844 bytes) do `chrome-visual.spec.ts` ghi ra.
 - **Tài nguyên cần dọn:** volume `apps-nestjs-apply_frontend_node_modules` và
   `apps-nestjs-apply_backend_node_modules` (cache dependency cho profile `test`); không có container
   nào để lại. Không xoá `test-results/` của lượt chạy khác.
