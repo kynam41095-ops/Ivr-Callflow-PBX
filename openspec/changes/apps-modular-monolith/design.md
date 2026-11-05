@@ -175,6 +175,9 @@ nên revert là đủ. Trước khi merge, nhánh change này không đụng `or
 
 ## Open Questions
 
+Không câu nào chặn việc apply change này: change chỉ đổi layout và dựng khung. Chúng được ghi lại
+để không ai tưởng khung backend đã là một phần nghiệp vụ.
+
 - **Nghiệp vụ đầu tiên của backend là gì?** Chưa có contract HTTP nào ngoài
   `contracts/flow-document.schema.json`. `src/data/api.ts` chỉ **nhắc tên** vài endpoint trong
   comment (`GET /flows/{flowId}/versions/{versionId}`, `POST /flows/{flowId}/versions`,
@@ -187,3 +190,7 @@ nên revert là đủ. Trước khi merge, nhánh change này không đụng `or
   contract thật.
 - **Có cần CI (GitHub Actions) cho hai app không?** Repo chưa có CI; nếu muốn, nên là change
   riêng để không trộn với việc đổi layout.
+
+**Có thể bỏ nếu không muốn:** `HealthModule` + capability `service-health` là hành vi tối thiểu
+để khung backend kiểm được. Không cần nó thì xoá module, xoá `specs/service-health/` và phần kiểm
+tương ứng ở task 2.2–2.3; phần còn lại của change không đổi.
